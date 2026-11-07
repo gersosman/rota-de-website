@@ -20,7 +20,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           how: copy.nav.how,
           germany: copy.nav.germany,
           faq: copy.nav.faq,
-          apply: copy.nav.apply,
           track: copy.nav.track,
         }}
       />

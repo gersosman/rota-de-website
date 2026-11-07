@@ -83,7 +83,7 @@ export default async function TelegramPage(props: { searchParams: Promise<Record
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-amber-700/30 bg-amber-50 p-4 text-amber-950">
+      <section className="mt-6 rounded-2xl border border-amber-700/30 bg-amber-500/10 p-4 text-foreground">
         <h2 className="font-medium">Yerel deneme</h2>
         <p className="mt-1 text-sm">Bu kutu Telegram değildir. Gönderilen cevap bot hesabına gitmez.</p>
         <form action={deskTurnAction} className="mt-4 grid gap-3">

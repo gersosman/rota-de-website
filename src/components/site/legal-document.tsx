@@ -29,7 +29,7 @@ export function LegalDocument({
   const rows = Object.keys(copy.fields) as Array<keyof CompanyProfile>;
   return (
     <main className="mx-auto max-w-3xl px-4 py-14">
-      <p className="rounded-2xl border border-amber-700/30 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+      <p className="rounded-2xl border border-amber-700/30 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-foreground">
         {ready ? copy.bannerFilled : copy.bannerMissing}
       </p>
       <h1 className="mt-6 font-serif text-4xl">{title}</h1>

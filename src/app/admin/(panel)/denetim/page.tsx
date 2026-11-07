@@ -12,7 +12,7 @@ export default async function AuditPage() {
   return (
     <main className="mx-auto max-w-4xl">
       <h1 className="font-serif text-4xl">Denetim</h1>
-      <section className="mt-6 rounded-2xl border border-amber-700/30 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+      <section className="mt-6 rounded-2xl border border-amber-700/30 bg-amber-500/10 p-4 text-sm leading-6 text-foreground">
         <h2 className="font-medium">Hukuki inceleme listesi</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5">
           {LEGAL_REVIEW.map((item) => <li key={item}>{item}</li>)}

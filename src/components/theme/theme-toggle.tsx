@@ -27,7 +27,7 @@ export function ThemeToggle({ toDark, toLight }: { toDark: string; toLight: stri
       type="button"
       onClick={toggle}
       aria-label={dark ? toLight : toDark}
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-white/80 hover:text-white"
+      className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 px-3 text-sm text-white/80 hover:text-white"
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       <span className="hidden sm:inline">{dark ? toLight : toDark}</span>

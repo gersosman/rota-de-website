@@ -14,7 +14,7 @@ export default async function ConditionsPage() {
     <main className="mx-auto max-w-3xl px-4 py-14">
       <h1 className="font-serif text-4xl">{copy.conditions.title}</h1>
       <p className="mt-4 leading-7 text-muted-foreground">{copy.conditions.lead}</p>
-      <section className="mt-10 rounded-2xl border border-amber-700/30 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+      <section className="mt-10 rounded-2xl border border-amber-700/30 bg-amber-500/10 p-5 text-sm leading-6 text-foreground">
         <p className="font-medium">{copy.conditions.unverified}</p>
         {law ? <p className="mt-2 text-xs">Sürüm: {String(law.version_label)} · {String(law.review_status)}</p> : null}
       </section>

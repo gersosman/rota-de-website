@@ -5,6 +5,12 @@ import { GUIDE_REVIEWED_ON, guide } from "@/lib/content/germany";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { publishedArticles } from "@/server/operations";
 
+const SECTION_VISUALS: Record<string, { src: string; altTr: string; altDe: string }> = {
+  ce: { src: "/photos/ce-training.jpg", altTr: "Ağır vasıta sürüş eğitimi", altDe: "Fahrausbildung am schweren Fahrzeug" },
+  src3: { src: "/photos/cabin.jpg", altTr: "Meslekî sürücü eğitimi", altDe: "Berufliche Fahrerqualifizierung" },
+  sozlesme: { src: "/photos/employer-office.jpg", altTr: "Lojistik şirkette çalışma ortamı", altDe: "Arbeitsplatz in einem Logistikunternehmen" },
+};
+
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,25 +36,32 @@ export default async function GermanyPage() {
             <h1 className="mt-3 font-serif text-4xl text-balance md:text-5xl">{copy.germany.title}</h1>
             <p className="mt-4 max-w-xl text-lg leading-8 text-white/75">{copy.germany.lead}</p>
           </div>
-          <div className="relative h-72 overflow-hidden rounded-3xl">
-            <Image src="/photos/highway.jpg" alt={copy.phase3.photoHighway} fill className="object-cover" sizes="(min-width: 1024px) 40vw, 100vw" />
+          <div className="relative aspect-[16/9] overflow-hidden rounded-3xl">
+            <Image src="/photos/germany-autobahn.jpg" alt={copy.phase3.photoGermany} fill className="object-cover object-center" sizes="(min-width: 1024px) 40vw, 100vw" />
           </div>
         </div>
       </section>
       <div className="mx-auto max-w-3xl px-4 py-12">
-        <p className="rounded-2xl border border-amber-700/30 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+        <p className="rounded-2xl border border-amber-700/30 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-foreground">
           {copy.conditions.unverified} {reviewed}.
         </p>
         <nav className="mt-8 flex flex-col gap-2 text-sm">
           {sections.map((section) => (
-            <a key={section.id} href={`#${section.id}`} className="text-[#0c1c2e] underline-offset-4 hover:underline">{section.title}</a>
+            <a key={section.id} href={`#${section.id}`} className="break-words text-foreground underline-offset-4 hover:underline [overflow-wrap:anywhere]">{section.title}</a>
           ))}
         </nav>
-        <div className="mt-10 space-y-12">
-          {sections.map((section) => (
-            <section key={section.id} id={section.id}>
-              <h2 className="font-serif text-3xl text-balance">{section.title}</h2>
+        <div className="mt-10 space-y-14">
+          {sections.map((section) => {
+            const visual = SECTION_VISUALS[section.id];
+            return (
+            <section key={section.id} id={section.id} className="scroll-mt-24">
+              <h2 className="font-serif text-3xl text-balance break-words [overflow-wrap:anywhere]">{section.title}</h2>
               <p className="mt-3 text-base leading-7">{section.summary}</p>
+              {visual ? (
+                <div className="relative mt-5 aspect-[16/9] overflow-hidden rounded-2xl">
+                  <Image src={visual.src} alt={locale === "de" ? visual.altDe : visual.altTr} fill className="object-cover object-center" sizes="(min-width: 768px) 48rem, 100vw" />
+                </div>
+              ) : null}
               {section.paragraphs.map((paragraph) => (
                 <p key={paragraph.slice(0, 40)} className="mt-3 text-sm leading-7 text-muted-foreground">{paragraph}</p>
               ))}
@@ -57,7 +70,8 @@ export default async function GermanyPage() {
                 <span className="text-muted-foreground"> · {reviewed}</span>
               </p>
             </section>
-          ))}
+            );
+          })}
         </div>
         {extra.length > 0 ? (
           <div className="mt-12 space-y-8">

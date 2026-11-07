@@ -13,7 +13,7 @@ export default async function StoriesPage(props: { searchParams: Promise<Record<
   return (
     <main className="mx-auto max-w-3xl">
       <h1 className="font-serif text-4xl">Başarı hikâyeleri</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">Yayın izni ve onay olmadan sitede görünmez. Temsili örnek gerçek yorum olarak yayınlanamaz. Telefon ve fotoğraf istenmez.</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">Yayın izni ve onay olmadan sitede görünmez. Onaysız metin yayımlanmaz. Telefon ve fotoğraf istenmez.</p>
       {notice ? <p className="mt-4 rounded-xl bg-muted px-3 py-2 text-sm">{notice}</p> : null}
       <form action={testimonialAction} className="mt-6 grid gap-2 rounded-2xl border border-border bg-card p-4">
         <Input name="name" required placeholder="Görünen ad veya takma ad" className="h-10" />

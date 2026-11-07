@@ -1,11 +1,10 @@
 Photos are stored in this folder. They are not loaded from a remote URL at runtime.
 
-highway.jpg — Markus Spiske, Pexels. German motorway, viewed from a vehicle. Pexels license.
-cabin.jpg — Gustavo Fring, Pexels. Driver in a truck cab. Pexels license.
-scania.jpg — Unsplash photo 1601584115197. Modern European tractor unit. Unsplash license.
-yard.jpg — Unsplash photo 1586528116311. Warehouse interior. Unsplash license.
-city.jpg — Unsplash photo 1467269204594. Rothenburg, Germany. Unsplash license.
-family.jpg — Unsplash photo 1609220136736. Family outdoors. Unsplash license.
+highway.jpg — Markus Spiske, Pexels. European motorway from a vehicle. Used only on the homepage and the share image. Pexels license.
+cabin.jpg — Gustavo Fring, Pexels. Driver in a truck cab. Used only in the professional-qualification section. Pexels license.
+germany-autobahn.jpg — original photograph for the Germany guide hero. Not a crop of highway.jpg.
+ce-training.jpg — original photograph for the CE licence section.
+employer-office.jpg — original photograph for employer matching. Office and apron, not a warehouse aisle.
+process-dawn.jpg — original photograph for the process page.
 
 Pexels license: https://www.pexels.com/license/
-Unsplash license: https://unsplash.com/license

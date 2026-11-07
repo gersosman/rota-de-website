@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useId, useState } from "react";
 import { track } from "@/lib/analytics-client";
 import { submitJourney } from "@/server/actions/intake";
@@ -59,17 +58,6 @@ type Copy = {
 type Step = "ce" | "src3" | "experience" | "german" | "family" | "follow" | "contact" | "summary";
 
 const ORDER: Step[] = ["ce", "src3", "experience", "german", "family", "follow", "contact", "summary"];
-
-const IMAGES: Record<Step, string> = {
-  ce: "/photos/scania.jpg",
-  src3: "/photos/cabin.jpg",
-  experience: "/photos/highway.jpg",
-  german: "/photos/city.jpg",
-  family: "/photos/family.jpg",
-  follow: "/photos/city.jpg",
-  contact: "/photos/cabin.jpg",
-  summary: "/photos/highway.jpg",
-};
 
 export function JourneyForm({
   copy,
@@ -197,10 +185,7 @@ export function JourneyForm({
             : [];
 
   return (
-    <section className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[0.9fr_1.1fr] lg:py-16">
-      <div className="relative h-64 overflow-hidden rounded-3xl bg-[#0c1c2e] lg:h-auto lg:min-h-[32rem]">
-        <Image src={IMAGES[step]} alt="" fill className="rota-drift object-cover opacity-80" sizes="(min-width: 1024px) 40vw, 100vw" />
-      </div>
+    <section className="mx-auto max-w-3xl px-4 py-10 lg:py-16">
       <div>
         <p className="text-xs tracking-[0.16em] text-accent uppercase">{copy.title}</p>
         <div className="mt-4 h-1 overflow-hidden rounded-full bg-muted">

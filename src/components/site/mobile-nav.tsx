@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,10 @@ export function MobileNav({ items, cta }: { items: Array<{ href: string; label: 
       </SheetTrigger>
       <SheetContent side="left" className="bg-[#0c1c2e] text-[#f4f1ea]">
         <SheetHeader>
-          <SheetTitle className="font-serif text-[#f4f1ea]">ROTA DE</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 font-serif text-[#f4f1ea]">
+            <Image src="/mark.svg" alt="" width={32} height={32} unoptimized className="size-8 rounded-md" />
+            ROTA DE
+          </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4">
           {items.map((item) => (
@@ -24,7 +28,7 @@ export function MobileNav({ items, cta }: { items: Array<{ href: string; label: 
               {item.label}
             </Link>
           ))}
-          <Button nativeButton={false} variant="accent" className="mt-3 h-10" render={<Link href="/on-degerlendirme" />}>
+          <Button nativeButton={false} variant="accent" className="mt-3 h-11 rounded-full" render={<Link href="/on-degerlendirme" />}>
             {cta}
           </Button>
         </nav>

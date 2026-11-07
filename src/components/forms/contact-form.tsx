@@ -15,7 +15,6 @@ export function ContactForm({
     email: string;
     message: string;
     preference: string;
-    phone: string;
     consent: string;
     submit: string;
     done: string;
@@ -51,7 +50,7 @@ export function ContactForm({
           email: form.get("email"),
           message: form.get("message"),
           contactPreference: form.get("contactPreference"),
-          phone: form.get("phone"),
+          phone: "",
           consent: form.get("consent") === "on" ? true : false,
           idempotencyKey: key,
           companyWebsite: website,
@@ -79,15 +78,11 @@ export function ContactForm({
       <label className="grid gap-1.5 text-sm">
         {labels.preference}
         <select name="contactPreference" className="h-11 rounded-lg border border-input bg-card px-3" defaultValue="email">
-          {["email", "telegram", "instagram", "phone"].map((item) => (
+          {["email", "telegram", "instagram"].map((item) => (
             <option key={item} value={item}>{labels.options[item]}</option>
           ))}
         </select>
       </label>
-      <div className="grid gap-1.5">
-        <Label htmlFor="phone">{labels.phone}</Label>
-        <Input id="phone" name="phone" className="h-11" />
-      </div>
       <label className="flex items-start gap-3 text-sm leading-6">
         <input type="checkbox" name="consent" className="mt-1" required />
         {labels.consent}

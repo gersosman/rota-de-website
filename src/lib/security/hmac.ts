@@ -1,5 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+export function secretEquals(expected: string, given: string | null): boolean {
+  if (!expected || !given) return false;
+  const left = Buffer.from(expected);
+  const right = Buffer.from(given);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
 export function signHmacSha256(secret: string, body: string): string {
   return createHmac("sha256", secret).update(body).digest("hex");
 }

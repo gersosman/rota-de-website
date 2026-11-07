@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 const links = [
   ["Genel bakış", "/admin"],
   ["Adaylar", "/admin/adaylar"],
+  ["Telegram", "/admin/telegram"],
   ["Bilgi bankası", "/admin/bilgi"],
   ["Denetim", "/admin/denetim"],
   ["Ayarlar", "/admin/ayarlar"],

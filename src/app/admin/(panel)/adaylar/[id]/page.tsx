@@ -144,11 +144,17 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
       <section className="mt-6 grid gap-4 md:grid-cols-3">
         <article className="rounded-2xl border border-border bg-card p-4">
           <h2 className="font-medium">Görüşmeler</h2>
-          {lead.conversations.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Kanal bağlı değil veya konuşma yok.</p> : (
+          {lead.conversations.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Konuşma yok.</p> : (
             <ul className="mt-2 space-y-2 text-sm">
               {lead.conversations.map((item) => {
-                const row = item as { id: string; channel: string; status: string; message_count: number };
-                return <li key={row.id}>{row.channel} · {row.status} · {num(row.message_count)} mesaj</li>;
+                const row = item as { id: string; channel: string; status: string; message_count: number; external_thread_id: string | null };
+                const href = row.channel === "telegram" && row.external_thread_id ? `/admin/telegram?chat=${encodeURIComponent(row.external_thread_id)}` : null;
+                return (
+                  <li key={row.id}>
+                    {href ? <Link href={href} className="text-accent">{row.channel}</Link> : row.channel}
+                    {" · "}{row.status} · {num(row.message_count)} mesaj
+                  </li>
+                );
               })}
             </ul>
           )}

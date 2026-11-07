@@ -16,6 +16,7 @@ export function LegalDocument({
     bannerMissing: string;
     bannerFilled: string;
     missing: string;
+    noPhone: string;
     fields: Record<keyof CompanyProfile, string>;
     deletionTitle: string;
     deletionBody: string;
@@ -34,12 +35,13 @@ export function LegalDocument({
       <h1 className="mt-6 font-serif text-4xl">{title}</h1>
       <p className="mt-4 text-sm leading-7">{draft}</p>
       <dl className="mt-8 divide-y divide-border rounded-2xl border border-border bg-card">
-        {rows.map((key) => (
+        {rows.filter((key) => key !== "phone").map((key) => (
           <div key={key} className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr]">
             <dt className="text-sm text-muted-foreground">{copy.fields[key]}</dt>
             <dd className="text-sm">{company[key] || copy.missing}</dd>
           </div>
         ))}
+        <div className="px-4 py-3 text-sm text-muted-foreground">{copy.noPhone}</div>
       </dl>
       {showDeletion ? (
         <DeletionForm

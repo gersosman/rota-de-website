@@ -18,7 +18,7 @@ const fields = [
   ["city", "Şehir"],
   ["country", "Ülke"],
   ["email", "E-posta"],
-  ["phone", "Telefon"],
+  ["phone", "Telefon (sitede yayımlanmaz)"],
   ["registerCourt", "Sicil mahkemesi"],
   ["registerNumber", "Sicil numarası"],
   ["vatId", "KDV kimliği"],

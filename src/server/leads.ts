@@ -195,6 +195,65 @@ export async function createAssessmentLead(input: AssessmentInput) {
   });
 }
 
+export async function createTelegramLead(input: {
+  fullName: string;
+  telegramHandle: string | null;
+  country: string | null;
+  ce: "yes" | "no" | null;
+  experienceRange: string | null;
+  germanLevel: string | null;
+  status: "NEEDS_REVIEW" | "CONSULTATION_PENDING";
+  scenario: "INSUFFICIENT_INFORMATION" | "NEEDS_REVIEW";
+  note: string;
+  followUpOn: string | null;
+}) {
+  return withTransaction(async (query) => {
+    const publicCode = await nextPublicCode(query);
+    const licence = input.ce === "yes" ? ["CE"] : [];
+    const leads = await query<{ id: string }>(
+      `insert into leads (
+         public_code, full_name, contact_preference, telegram_handle, country,
+         licence_classes, experience_range, eu_eea_licence, code95_status, german_level,
+         intent, age_range, source, status, scenario_hint, notes, follow_up_on, last_contact_at
+       ) values (
+         $1, $2, 'telegram', $3, $4,
+         $5::jsonb, $6, 'unknown', 'unknown', $7,
+         'unsure', 'undisclosed', 'telegram', $8, $9, $10, $11, now()
+       ) returning id`,
+      [
+        publicCode,
+        input.fullName,
+        input.telegramHandle,
+        input.country,
+        JSON.stringify(licence),
+        input.experienceRange,
+        input.germanLevel,
+        input.status,
+        input.scenario,
+        input.note,
+        input.followUpOn,
+      ],
+    );
+    const leadId = leads[0]?.id;
+    if (!leadId) throw new Error("lead_insert_failed");
+    await query(
+      `insert into lead_status_events (lead_id, to_status, note) values ($1, $2, $3)`,
+      [leadId, input.status, input.note],
+    );
+    await query(
+      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'telegram_chat', $2, true)`,
+      [leadId, CONSENT_VERSION],
+    );
+    await auditWith(query, {
+      action: "lead.telegram_created",
+      entityType: "lead",
+      entityId: leadId,
+      metadata: { status: input.status },
+    });
+    return { id: leadId, publicCode };
+  });
+}
+
 export async function createContactLead(input: ContactInput) {
   const existing = await findSubmission(input.idempotencyKey);
   if (existing) return { publicCode: existing, duplicate: true as const };
@@ -335,7 +394,7 @@ export async function getLead(id: string) {
       [id],
     ),
     sql(
-      `select c.id, c.channel, c.status, c.created_at,
+      `select c.id, c.channel, c.status, c.external_thread_id, c.created_at,
               (select count(*)::int from messages m where m.conversation_id = c.id) as message_count
        from conversations c where c.lead_id = $1 order by c.created_at`,
       [id],

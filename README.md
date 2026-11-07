@@ -2,13 +2,13 @@
 
 Türkiye'den Almanya'ya profesyonel tır şoförlüğü düşünen adaylar için danışmanlık ve müşteri yönetim platformu.
 
-Bu depo Faz 1'i içerir: herkese açık site, yönetici paneli, kimlik doğrulama, CRM, ön değerlendirme ve veritabanı. Telegram, Instagram, ödeme, randevu takvimi ve AI cevaplayıcı sonraki fazlardadır. Bağlı olmayan entegrasyonlar panelde **bağlı değil** olarak görünür.
+Bu depo Faz 1 ve Faz 2'yi içerir: herkese açık site, yönetici paneli, CRM, ön değerlendirme ve Telegram botu. Instagram, ödeme, randevu takvimi ve AI cevaplayıcı sonraki fazlardadır. Tokenı olmayan entegrasyon panelde **bağlı değil** görünür.
 
 ## Ne işe yarar
 
 Ziyaretçi ücretsiz ön değerlendirme formunu doldurur. Sistem cevapları iki inceleme izinden birine ayırabilir: § 24a Abs. 1 veya Abs. 2. Bu bir vize, oturum, çalışma izni veya iş kararı değildir. Dosya yönetici panelinde insan incelemesine düşer.
 
-Site Türkçe ve Almancadır. Yönetim paneli Türkçedir.
+Site Türkçe ve Almancadır. Yönetim paneli Türkçedir. İletişimde kişisel telefon yayımlanmaz. Telegram botu bağlanınca yazışma botun kullanıcı adından yürür. Token yokken `/admin/telegram` içindeki yerel deneme aynı akışı CRM'e yazar ve Telegram'a göndermez.
 
 ## Çalıştırma
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AUTOMATION_LABEL } from "@/lib/domain/labels";
 import { formatDateTime } from "@/lib/format";
 import { sql } from "@/server/db";
@@ -23,8 +24,10 @@ export default async function IntegrationsPage() {
     <main className="mx-auto max-w-3xl">
       <h1 className="font-serif text-4xl">Entegrasyonlar</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Bağlantı kurulmadı. Bu ekran başarılı bağlantı göstermez. Anahtar değerleri veritabanında ve tarayıcıda tutulmaz;
-        yalnızca ortam değişkeninin adı kayıtlıdır.
+        Anahtar değerleri veritabanında ve tarayıcıda tutulmaz. Telegram ancak token doğrulanıp webhook kurulunca bağlı görünür.
+      </p>
+      <p className="mt-3">
+        <Link href="/admin/telegram" className="text-sm text-accent">Telegram masasını aç</Link>
       </p>
       <ul className="mt-6 space-y-3">
         {accounts.map((account) => (
@@ -41,7 +44,7 @@ export default async function IntegrationsPage() {
         ))}
       </ul>
       <h2 className="mt-10 font-medium">Otomasyon tercihleri</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Anahtarlar kapalı durur. Çalıştırıcı bağlı olmadığı için görev üretilmez.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Telegram karşılama anahtarı Telegram sayfasından açılır. Diğer işler bu fazda çalışmaz.</p>
       <ul className="mt-3 divide-y divide-border rounded-2xl border border-border">
         {automations.map((item) => (
           <li key={item.kind} className="flex items-center justify-between px-4 py-3 text-sm">

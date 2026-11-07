@@ -5,7 +5,8 @@ import { sql, withTransaction, type QueryFn } from "@/server/db";
 import { classifyAssessment } from "@/lib/domain/classify";
 import type { LeadStatus, ScenarioHint } from "@/lib/domain/labels";
 import { escapeLike, isUuid, jsonArray, num } from "@/lib/format";
-import type { AssessmentInput, ContactInput } from "@/lib/validation/assessment";
+import type { AssessmentInput, ContactInput, JourneyInput } from "@/lib/validation/assessment";
+import type { WaDraft } from "@/lib/whatsapp/engine";
 
 const CONSENT_VERSION = "onay-2026-11";
 
@@ -18,6 +19,10 @@ export type LeadListItem = {
   scenarioHint: ScenarioHint | null;
   source: string;
   country: string | null;
+  ceIntent: string | null;
+  src3Status: string | null;
+  familyStatus: string | null;
+  germanLevel: string | null;
   followUpOn: string | null;
   createdAt: string;
   lastContactAt: string | null;
@@ -43,6 +48,13 @@ type LeadRow = {
   intent: string | null;
   source: string;
   status: LeadStatus;
+  ce_intent: string | null;
+  src3_status: string | null;
+  family_status: string | null;
+  spouse_german: string | null;
+  children_ages: string | null;
+  city: string | null;
+  marketing_opt_in: boolean;
   scenario_hint: ScenarioHint | null;
   notes: string | null;
   last_contact_at: string | null;
@@ -62,6 +74,10 @@ function mapList(row: LeadRow): LeadListItem {
     scenarioHint: row.scenario_hint,
     source: row.source,
     country: row.country,
+    ceIntent: row.ce_intent,
+    src3Status: row.src3_status,
+    familyStatus: row.family_status,
+    germanLevel: row.german_level,
     followUpOn: row.follow_up_on,
     createdAt: row.created_at,
     lastContactAt: row.last_contact_at,
@@ -254,6 +270,196 @@ export async function createTelegramLead(input: {
   });
 }
 
+const GERMAN_FROM_JOURNEY = { none: "none", start: "A1", mid: "B1", good: "B2", beginner: "A1" } as const;
+
+export async function createWhatsappLead(input: { draft: WaDraft; phone: string | null; handoff: boolean }) {
+  const draft = input.draft;
+  const german = draft.german ? GERMAN_FROM_JOURNEY[draft.german] : null;
+  return withTransaction(async (query) => {
+    const publicCode = await nextPublicCode(query);
+    const leads = await query<{ id: string }>(
+      `insert into leads (
+         public_code, full_name, contact_preference, phone, country, city, licence_classes,
+         experience_range, eu_eea_licence, code95_status, german_level, intent, age_range,
+         ce_intent, src3_status, family_status, spouse_german, children_ages,
+         source, status, scenario_hint, notes, follow_up_on, last_contact_at
+       ) values (
+         $1, $2, 'whatsapp', $3, null, $4, $5::jsonb,
+         $6, 'unknown', 'unknown', $7, 'unsure', 'undisclosed',
+         $8, $9, $10, $11, $12,
+         'whatsapp', $13, 'INSUFFICIENT_INFORMATION', $14, $15, now()
+       ) returning id`,
+      [
+        publicCode,
+        draft.name || "WhatsApp adayı",
+        input.phone,
+        draft.city ?? null,
+        JSON.stringify(draft.ce === "yes" ? ["CE"] : []),
+        draft.experience ?? null,
+        german,
+        draft.ce === "yes" ? "have" : draft.ce === "plan" ? "planning" : null,
+        draft.src3 === "have" ? "have" : draft.src3 === "plan" ? "planning" : draft.src3 === "info" ? "info" : null,
+        draft.family ?? null,
+        draft.spouse ?? null,
+        draft.children || null,
+        input.handoff ? "CONSULTATION_PENDING" : "NEEDS_REVIEW",
+        input.handoff ? "WhatsApp insan talebi. Telefon yayımlanmaz." : "WhatsApp ön kayıt. Hukuki karar değildir.",
+        input.handoff ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : null,
+      ],
+    );
+    const leadId = leads[0]?.id;
+    if (!leadId) throw new Error("lead_insert_failed");
+    await query(`insert into lead_status_events (lead_id, to_status, note) values ($1, $2, $3)`, [
+      leadId,
+      input.handoff ? "CONSULTATION_PENDING" : "NEEDS_REVIEW",
+      "WhatsApp kaydı. Onay değildir.",
+    ]);
+    await query(
+      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_chat', $2, true)`,
+      [leadId, CONSENT_VERSION],
+    );
+    await auditWith(query, { action: "lead.whatsapp_created", entityType: "lead", entityId: leadId, metadata: { handoff: input.handoff } });
+    return { id: leadId, publicCode };
+  });
+}
+
+export async function createJourneyLead(input: JourneyInput) {
+  const existing = await findSubmission(input.idempotencyKey);
+  if (existing) return { publicCode: existing, duplicate: true as const };
+  const german = input.german === "beginner" ? "A1" : input.german === "mid" ? "B1" : input.german === "good" ? "B2" : "none";
+  const classification = classifyAssessment({
+    hasCe: input.ce === "have" ? "yes" : "no",
+    licenceClasses: input.ce === "have" ? ["CE"] : [],
+    experienceRange: input.experience,
+    germanLevel: german,
+  });
+  return withTransaction(async (query) => {
+    const version = await query<{ id: string }>("select id from legislation_versions where is_active = true limit 1");
+    const publicCode = await nextPublicCode(query);
+    const email = input.email?.trim() ? input.email.trim().toLowerCase() : null;
+    const leads = await query<{ id: string }>(
+      `insert into leads (
+         public_code, full_name, email, contact_preference, phone, city, licence_classes,
+         experience_range, eu_eea_licence, code95_status, german_level, intent, age_range,
+         ce_intent, src3_status, family_status, spouse_german, children_ages, marketing_opt_in,
+         source, status, scenario_hint, notes
+       ) values (
+         $1,$2,$3,$4,$5,$6,$7::jsonb,
+         $8,'unknown','unknown',$9,'unsure','undisclosed',
+         $10,$11,$12,$13,$14,$15,
+         'website_assessment',$16,$17,$18
+       ) returning id`,
+      [
+        publicCode,
+        input.fullName,
+        email,
+        input.whatsappOptIn ? "whatsapp" : email ? "email" : "phone",
+        input.phone,
+        input.city,
+        JSON.stringify(input.ce === "have" ? ["CE"] : []),
+        input.experience,
+        german,
+        input.ce === "have" ? "have" : "planning",
+        input.src3,
+        input.family,
+        input.family === "alone" ? null : (input.spouseGerman ?? null),
+        input.family === "family" ? (input.childrenAges || null) : null,
+        input.marketingOptIn,
+        classification.leadStatus,
+        classification.hint,
+        "Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.",
+      ],
+    );
+    const leadId = leads[0]?.id;
+    if (!leadId) throw new Error("lead_insert_failed");
+    await query(`insert into lead_status_events (lead_id, to_status, note) values ($1, $2, $3)`, [
+      leadId,
+      classification.leadStatus,
+      classification.reason,
+    ]);
+    await query(
+      `insert into lead_assessments (lead_id, legislation_version_id, answers, classification, classification_reason, disclaimer_ack)
+       values ($1, $2, $3::jsonb, $4, $5, true)`,
+      [leadId, version[0]?.id ?? null, JSON.stringify(input), classification.hint, classification.reason],
+    );
+    await query(`insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'assessment', $2, true)`, [
+      leadId,
+      CONSENT_VERSION,
+    ]);
+    if (input.whatsappOptIn) {
+      await query(
+        `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_service', $2, true)`,
+        [leadId, CONSENT_VERSION],
+      );
+    }
+    await query(
+      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_marketing', $2, $3)`,
+      [leadId, CONSENT_VERSION, input.marketingOptIn],
+    );
+    await query("insert into intake_submissions (idempotency_key, lead_id, public_code) values ($1, $2, $3)", [
+      input.idempotencyKey,
+      leadId,
+      publicCode,
+    ]);
+    await auditWith(query, {
+      action: "lead.journey_created",
+      entityType: "lead",
+      entityId: leadId,
+      metadata: { scenario: classification.hint },
+    });
+    return { publicCode, duplicate: false as const };
+  });
+}
+
+export async function leadStatusByCode(code: string) {
+  if (!/^RD-\d{4}-\d{5}$/.test(code)) return null;
+  const rows = await sql<{ status: LeadStatus }>(
+    "select status from leads where public_code = $1 and deleted_at is null and merged_into is null",
+    [code],
+  );
+  return rows[0]?.status ?? null;
+}
+
+export async function phoneSuggestions(leadId: string, phone: string | null) {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (digits.length < 10) return [];
+  return sql<{ id: string; public_code: string; full_name: string }>(
+    `select id, public_code, full_name from leads
+     where deleted_at is null and merged_into is null and id <> $1
+       and regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = $2
+     limit 5`,
+    [leadId, digits],
+  );
+}
+
+export async function mergeLeads(actorId: string, sourceId: string, targetCode: string) {
+  if (!isUuid(sourceId) || !/^RD-\d{4}-\d{5}$/.test(targetCode)) return { ok: false as const, detail: "Dosya bulunamadı." };
+  return withTransaction(async (query) => {
+    const target = await query<{ id: string }>(
+      "select id from leads where public_code = $1 and deleted_at is null and merged_into is null",
+      [targetCode],
+    );
+    const targetId = target[0]?.id;
+    if (!targetId || targetId === sourceId) return { ok: false as const, detail: "Dosya bulunamadı." };
+    const moved = await query<{ id: string }>(
+      `update leads set merged_into = $2, status = 'CLOSED', updated_at = now()
+       where id = $1 and deleted_at is null and merged_into is null
+       returning id`,
+      [sourceId, targetId],
+    );
+    if (!moved[0]) return { ok: false as const, detail: "Dosya birleştirilemedi." };
+    await query("update conversations set lead_id = $2, updated_at = now() where lead_id = $1", [sourceId, targetId]);
+    await auditWith(query, {
+      actorId,
+      action: "lead.merged",
+      entityType: "lead",
+      entityId: targetId,
+      metadata: { manual: true },
+    });
+    return { ok: true as const, detail: "Kayıtlar elle birleştirildi." };
+  });
+}
+
 export async function createContactLead(input: ContactInput) {
   const existing = await findSubmission(input.idempotencyKey);
   if (existing) return { publicCode: existing, duplicate: true as const };
@@ -332,7 +538,17 @@ export async function createManualLead(input: {
   });
 }
 
-export async function listLeads(filters: { q?: string; status?: string; scenario?: string }) {
+export async function listLeads(filters: {
+  q?: string;
+  status?: string;
+  scenario?: string;
+  ce?: string;
+  src3?: string;
+  german?: string;
+  family?: string;
+  source?: string;
+  waiting?: string;
+}) {
   const params: unknown[] = [];
   const where = ["deleted_at is null"];
   if (filters.status) {
@@ -343,6 +559,28 @@ export async function listLeads(filters: { q?: string; status?: string; scenario
     params.push(filters.scenario);
     where.push(`scenario_hint = $${params.length}`);
   }
+  if (filters.ce === "have") where.push(`(ce_intent = 'have' or licence_classes @> '["CE"]'::jsonb)`);
+  if (filters.ce === "planning") where.push(`ce_intent = 'planning'`);
+  if (filters.src3 === "have" || filters.src3 === "planning" || filters.src3 === "info") {
+    params.push(filters.src3);
+    where.push(`src3_status = $${params.length}`);
+  }
+  if (filters.german) {
+    params.push(filters.german);
+    where.push(`german_level = $${params.length}`);
+  }
+  if (filters.family === "alone" || filters.family === "spouse" || filters.family === "family") {
+    params.push(filters.family);
+    where.push(`family_status = $${params.length}`);
+  }
+  if (filters.source === "website_assessment" || filters.source === "website_contact" || filters.source === "telegram" || filters.source === "whatsapp" || filters.source === "manual") {
+    params.push(filters.source);
+    where.push(`source = $${params.length}`);
+  }
+  if (filters.waiting === "human") {
+    where.push(`exists (select 1 from conversations c where c.lead_id = leads.id and c.status = 'waiting_human')`);
+  }
+  if (filters.waiting === "consultation") where.push(`status = 'CONSULTATION_PENDING'`);
   if (filters.q) {
     params.push(`%${escapeLike(filters.q)}%`);
     where.push(
@@ -353,7 +591,8 @@ export async function listLeads(filters: { q?: string; status?: string; scenario
   const rows = await sql<LeadRow>(
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
-            code95_status, german_level, intent, source, status, scenario_hint, notes, last_contact_at,
+            code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
+            spouse_german, children_ages, city, marketing_opt_in, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads
      where ${where.join(" and ")}
@@ -369,7 +608,8 @@ export async function getLead(id: string) {
   const leads = await sql<LeadRow>(
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
-            code95_status, german_level, intent, source, status, scenario_hint, notes, last_contact_at,
+            code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
+            spouse_german, children_ages, city, marketing_opt_in, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads where id = $1`,
     [id],
@@ -435,6 +675,10 @@ export async function getLead(id: string) {
     germanLevel: lead.german_level,
     intent: lead.intent,
     notes: lead.notes,
+    city: lead.city,
+    spouseGerman: lead.spouse_german,
+    childrenAges: lead.children_ages,
+    marketingOptIn: Boolean(lead.marketing_opt_in),
     updatedAt: lead.updated_at,
     events,
     notesList: notes,
@@ -535,6 +779,9 @@ export async function anonymizeLead(actorId: string, leadId: string) {
          full_name = 'Silinmiş kayıt',
          email = null,
          phone = null,
+         city = null,
+         children_ages = null,
+         spouse_german = null,
          telegram_handle = null,
          instagram_handle = null,
          notes = null,

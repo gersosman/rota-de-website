@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addNoteAction, anonymizeLeadAction, changeStatusAction, followUpAction } from "@/server/actions/crm";
+import { mergeLeadAction } from "@/server/actions/whatsapp";
 import { LEAD_STATUSES, SCENARIO_LABEL, STATUS_LABEL } from "@/lib/domain/labels";
 import { formatDateTime, formatMoney, jsonObject, num } from "@/lib/format";
-import { getLead } from "@/server/leads";
+import { getLead, phoneSuggestions } from "@/server/leads";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
   const { id } = await props.params;
   const lead = await getLead(id);
   if (!lead) notFound();
+  const suggestions = await phoneSuggestions(lead.id, lead.phone);
   const facts = [
     ["İletişim tercihi", lead.contactPreference],
     ["Telefon", lead.phone || "—"],
@@ -31,6 +33,12 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
     ["Almanca", lead.germanLevel || "—"],
     ["Niyet", lead.intent || "—"],
     ["Kaynak", lead.source],
+    ["Şehir", lead.city || "—"],
+    ["CE niyeti", lead.ceIntent || "—"],
+    ["SRC3", lead.src3Status || "—"],
+    ["Aile", lead.familyStatus || "—"],
+    ["Eşin Almancası", lead.spouseGerman || "—"],
+    ["Çocuk yaş aralığı", lead.childrenAges || "—"],
     ["Son iletişim", formatDateTime(lead.lastContactAt)],
     ["Takip", lead.followUpOn || "—"],
   ];
@@ -62,6 +70,20 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
             ))}
           </dl>
           {lead.notes ? <p className="mt-4 text-sm leading-6">{lead.notes}</p> : null}
+          <p className="mt-4 text-sm text-muted-foreground">Belge yükleme bu aşamada kapalı. İlk kayıt evrak istemez.</p>
+          {suggestions.length > 0 ? (
+            <div className="mt-4 rounded-xl bg-muted p-3 text-sm">
+              <p>Aynı telefonla başka dosya var. Otomatik birleştirilmedi.</p>
+              <ul className="mt-2">
+                {suggestions.map((item) => <li key={item.id}>{item.public_code} · {item.full_name}</li>)}
+              </ul>
+            </div>
+          ) : null}
+          <form action={mergeLeadAction} className="mt-4 grid gap-2">
+            <input type="hidden" name="source" value={lead.id} />
+            <Input name="target" placeholder="Birleştirilecek dosya no" className="h-10" />
+            <Button type="submit" variant="outline" className="h-10">Elle birleştir</Button>
+          </form>
         </section>
         <section className="space-y-4">
           <form action={changeStatusAction} className="rounded-2xl border border-border bg-card p-4">

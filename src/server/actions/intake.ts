@@ -1,9 +1,9 @@
 "use server";
 
 import { publicGate } from "@/server/actions/guards";
-import { createAssessmentLead, createContactLead, findSubmission, requestDeletion } from "@/server/leads";
+import { createAssessmentLead, createContactLead, createJourneyLead, findSubmission, requestDeletion } from "@/server/leads";
 import { allowRate, hashValue } from "@/server/rate-limit";
-import { assessmentSchema, contactSchema, deletionSchema } from "@/lib/validation/assessment";
+import { assessmentSchema, contactSchema, deletionSchema, journeySchema } from "@/lib/validation/assessment";
 
 export async function submitAssessment(input: unknown) {
   const gate = await publicGate("assessment", 8, 60 * 60);
@@ -18,6 +18,25 @@ export async function submitAssessment(input: unknown) {
     return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate };
   } catch (error) {
     console.error("assessment_failed", error instanceof Error ? error.name : "error");
+    const recovered = await findSubmission(parsed.data.idempotencyKey).catch(() => null);
+    if (recovered) return { ok: true as const, publicCode: recovered, duplicate: true };
+    return { ok: false as const, code: "unavailable" as const };
+  }
+}
+
+export async function submitJourney(input: unknown) {
+  const gate = await publicGate("journey", 8, 60 * 60);
+  if (!gate.ok) return gate;
+  const parsed = journeySchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, code: "invalid" as const };
+  if (parsed.data.companyWebsite) return { ok: true as const, publicCode: null, duplicate: false };
+  const phoneBucket = `journey-phone:${hashValue(parsed.data.phone.replace(/\D/g, ""))}`;
+  if (!(await allowRate(phoneBucket, 5, 60 * 60))) return { ok: false as const, code: "rate" as const };
+  try {
+    const result = await createJourneyLead(parsed.data);
+    return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate };
+  } catch (error) {
+    console.error("journey_failed", error instanceof Error ? error.name : "error");
     const recovered = await findSubmission(parsed.data.idempotencyKey).catch(() => null);
     if (recovered) return { ok: true as const, publicCode: recovered, duplicate: true };
     return { ok: false as const, code: "unavailable" as const };

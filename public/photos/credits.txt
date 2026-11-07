@@ -1,0 +1,11 @@
+Photos are stored in this folder. They are not loaded from a remote URL at runtime.
+
+highway.jpg — Markus Spiske, Pexels. German motorway, viewed from a vehicle. Pexels license.
+cabin.jpg — Gustavo Fring, Pexels. Driver in a truck cab. Pexels license.
+scania.jpg — Unsplash photo 1601584115197. Modern European tractor unit. Unsplash license.
+yard.jpg — Unsplash photo 1586528116311. Warehouse interior. Unsplash license.
+city.jpg — Unsplash photo 1467269204594. Rothenburg, Germany. Unsplash license.
+family.jpg — Unsplash photo 1609220136736. Family outdoors. Unsplash license.
+
+Pexels license: https://www.pexels.com/license/
+Unsplash license: https://unsplash.com/license

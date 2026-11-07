@@ -1,35 +1,60 @@
-import { AssessmentForm } from "@/components/forms/assessment-form";
+import { JourneyForm } from "@/components/forms/journey-form";
 import { getDictionary } from "@/lib/i18n";
+import { publicWhatsappLink } from "@/server/whatsapp/inbox";
 
 export const instant = false;
 
-export default async function AssessmentPage() {
+function one(value: string | string[] | undefined) {
+  return typeof value === "string" ? value.slice(0, 80) : "";
+}
+
+export default async function AssessmentPage(props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await props.searchParams;
   const copy = await getDictionary();
+  const text = copy.phase3;
+  const whatsapp = await publicWhatsappLink();
   return (
-    <main className="mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-[0.8fr_1.2fr]">
-      <div>
-        <h1 className="font-serif text-4xl">{copy.assessment.title}</h1>
-        <p className="mt-4 leading-7 text-muted-foreground">{copy.assessment.lead}</p>
-        <p className="mt-6 text-sm leading-6 text-muted-foreground">{copy.disclaimer}</p>
-      </div>
-      <AssessmentForm
+    <main>
+      <JourneyForm
+        whatsappHref={whatsapp}
+        initial={{
+          ce: one(params.ce),
+          src3: one(params.src3),
+          german: one(params.german),
+          family: one(params.family),
+          spouseGerman: one(params.spouseGerman),
+          childrenAges: one(params.childrenAges),
+        }}
         copy={{
-          next: copy.assessment.next,
-          back: copy.assessment.back,
-          submit: copy.assessment.submit,
-          sending: copy.assessment.sending,
-          step: copy.assessment.step,
-          doneTitle: copy.assessment.doneTitle,
-          doneBody: copy.assessment.doneBody,
-          duplicate: copy.assessment.duplicate,
-          errorInvalid: copy.assessment.errorInvalid,
-          errorRate: copy.assessment.errorRate,
-          errorOrigin: copy.assessment.errorOrigin,
-          errorUnavailable: copy.assessment.errorUnavailable,
+          ...text.journey,
+          ceHave: text.ceHave,
+          cePlan: text.cePlan,
+          srcHave: text.srcHave,
+          srcPlan: text.srcPlan,
+          srcInfo: text.srcInfo,
+          deNone: text.deNone,
+          deStart: text.deStart,
+          deMid: text.deMid,
+          deGood: text.deGood,
+          familyAlone: text.familyAlone,
+          familySpouse: text.familySpouse,
+          familyKids: text.familyKids,
+          spouseQ: text.spouseQ,
+          childrenQ: text.childrenQ,
+          spouseYes: text.spouseYes,
+          spouseNo: text.spouseNo,
+          spouseLater: text.spouseLater,
+          childrenHint: text.childrenHint,
+          papers: text.papers,
+          whatsappPending: text.whatsappPending,
           consent: copy.assessment.consent,
           ack: copy.assessment.ack,
-          questions: [...copy.assessment.questions],
-          options: copy.options,
+          errors: {
+            invalid: copy.assessment.errorInvalid,
+            rate: copy.assessment.errorRate,
+            origin: copy.assessment.errorOrigin,
+            unavailable: copy.assessment.errorUnavailable,
+          },
         }}
       />
     </main>

@@ -13,7 +13,7 @@ export function telegramCredentials(): TelegramCredentials | null {
 }
 
 export function publicWebhookUrl(): string | null {
-  const raw = process.env.APP_PUBLIC_URL?.trim() ?? "";
+  const raw = process.env.APP_PUBLIC_URL?.trim() || process.env.APP_URL?.trim() || "";
   if (!raw.startsWith("https://")) return null;
   try {
     const url = new URL(raw);
@@ -25,7 +25,7 @@ export function publicWebhookUrl(): string | null {
 }
 
 export function contactPageUrl(): string | null {
-  const raw = process.env.APP_PUBLIC_URL?.trim() ?? "";
+  const raw = process.env.APP_PUBLIC_URL?.trim() || process.env.APP_URL?.trim() || "";
   if (!raw.startsWith("https://")) return null;
   try {
     const url = new URL(raw);

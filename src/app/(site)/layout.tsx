@@ -1,3 +1,4 @@
+import { ConnectionNotice } from "@/components/site/connection-notice";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
 import { getDictionary, getLocale } from "@/lib/i18n";
@@ -21,6 +22,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           contact: copy.nav.contact,
         }}
       />
+      <ConnectionNotice slow={copy.phase3.slow} offline={copy.phase3.offline} />
       <div className="flex-1">{children}</div>
       <SiteFooter
         note={copy.footer.note}

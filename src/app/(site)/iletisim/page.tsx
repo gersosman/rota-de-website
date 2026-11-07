@@ -1,13 +1,15 @@
 import { ContactForm } from "@/components/forms/contact-form";
-import { Button } from "@/components/ui/button";
+import { TrackAnchor } from "@/components/site/track-anchor";
 import { getDictionary } from "@/lib/i18n";
 import { publicBotLink } from "@/server/telegram/inbox";
+import { publicWhatsappLink } from "@/server/whatsapp/inbox";
 
 export const instant = false;
 
 export default async function ContactPage() {
   const copy = await getDictionary();
   const bot = await publicBotLink();
+  const whatsapp = await publicWhatsappLink();
   return (
     <main className="mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-2">
       <div>
@@ -17,9 +19,18 @@ export default async function ContactPage() {
           <h2 className="font-serif text-2xl">{copy.contact.botTitle}</h2>
           <p className="mt-2 text-sm text-muted-foreground">{bot ? copy.contact.botBody : copy.contact.botMissing}</p>
           {bot ? (
-            <Button nativeButton={false} variant="accent" className="mt-4 h-11" render={<a href={bot} target="_blank" rel="noopener noreferrer" />}>
+            <TrackAnchor href={bot} event="telegram_click" className="mt-4 inline-flex h-11 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground">
               {copy.contact.botOpen}
-            </Button>
+            </TrackAnchor>
+          ) : null}
+        </div>
+        <div id="whatsapp" className="mt-4 rounded-2xl border border-border bg-card p-5">
+          <h2 className="font-serif text-2xl">WhatsApp</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{whatsapp ? copy.phase3.heroLead : copy.phase3.whatsappPending}</p>
+          {whatsapp ? (
+            <TrackAnchor href={whatsapp} event="whatsapp_click" className="mt-4 inline-flex h-11 items-center rounded-lg bg-[#0c1c2e] px-4 text-sm text-[#f4f1ea]">
+              {copy.phase3.whatsapp}
+            </TrackAnchor>
           ) : null}
         </div>
       </div>

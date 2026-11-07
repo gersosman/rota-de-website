@@ -52,6 +52,44 @@ export const assessmentSchema = z
 
 export type AssessmentInput = z.infer<typeof assessmentSchema>;
 
+const phoneField = z
+  .string()
+  .trim()
+  .min(8)
+  .max(20)
+  .refine((value) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.length >= 8 && digits.length <= 15;
+  }, "phone");
+
+export const journeySchema = z
+  .object({
+    ce: z.enum(["have", "planning"]),
+    src3: z.enum(["have", "planning", "info"]),
+    experience: z.enum(experienceRanges),
+    german: z.enum(["none", "beginner", "mid", "good"]),
+    family: z.enum(["alone", "spouse", "family"]),
+    spouseGerman: z.enum(["yes", "no", "unknown"]).optional(),
+    childrenAges: z.string().trim().max(80).optional(),
+    fullName: z.string().trim().min(3).max(120),
+    phone: phoneField,
+    email: z.union([z.literal(""), z.email().max(180)]).optional(),
+    city: z.string().trim().min(2).max(80),
+    whatsappOptIn: z.boolean(),
+    marketingOptIn: z.boolean(),
+    consent: z.literal(true),
+    disclaimerAck: z.literal(true),
+    idempotencyKey: z.string().trim().min(8).max(80),
+    companyWebsite: z.string().max(200).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.family !== "alone" && !value.spouseGerman) {
+      context.addIssue({ code: "custom", path: ["spouseGerman"], message: "required" });
+    }
+  });
+
+export type JourneyInput = z.infer<typeof journeySchema>;
+
 export const contactSchema = z.object({
   fullName: z.string().trim().min(3).max(120),
   email: z.email().max(180),

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AUTOMATION_LABEL } from "@/lib/domain/labels";
 import { formatDateTime, formatMoney, num } from "@/lib/format";
 import { dashboardData } from "@/server/leads";
+import { funnelCounts } from "@/server/whatsapp/inbox";
 
 export const instant = false;
 
@@ -18,13 +19,15 @@ function Row({ label, value, hint }: { label: string; value: string; hint?: stri
 }
 
 export default async function DashboardPage() {
-  const data = await dashboardData();
+  const [data, funnel] = await Promise.all([dashboardData(), funnelCounts()]);
   const counts = data.counts;
   const sales = data.sales;
   const instagram = data.integrations.find((item) => item.provider === "instagram");
   const telegram = data.integrations.find((item) => item.provider === "telegram");
+  const whatsapp = data.integrations.find((item) => item.provider === "whatsapp");
   const instagramConnected = instagram?.status === "connected";
   const telegramConnected = telegram?.status === "connected";
+  const channelState = (status?: string) => status === "connected" ? "Bağlı" : status === "error" ? "Bağlantı hatası" : "Kurulum bekleniyor";
   return (
     <main className="mx-auto max-w-5xl">
       <div className="flex items-end justify-between gap-4">
@@ -61,10 +64,21 @@ export default async function DashboardPage() {
             hint={instagramConnected ? "Hesap kaydı bağlı görünüyor." : "Takipçi ve içerik performansı yok. Sahte metrik gösterilmez."}
           />
           <Row
-            label="Telegram görüşmesi"
-            value={telegramConnected ? String(num(counts?.telegram_conversations)) : "Bağlı değil"}
-            hint={telegramConnected ? "Kayıtlı konuşma sayısı" : `Bot yapılandırılmadı. Kayıtlı konuşma: ${num(counts?.telegram_conversations)}.`}
+            label="Telegram"
+            value={channelState(telegram?.status)}
+            hint={telegramConnected ? `Kayıtlı konuşma: ${num(counts?.telegram_conversations)}` : "Bot yapılandırılmadı."}
           />
+          <Row label="WhatsApp" value={channelState(whatsapp?.status)} hint={whatsapp?.status === "connected" ? "İşletme hattı doğrulandı." : "Kişisel numara yayımlanmaz."} />
+        </section>
+        <section className="rounded-2xl border border-border bg-card px-4">
+          <h2 className="pt-4 font-medium">Dönüşüm</h2>
+          {funnel.visits === 0 ? <p className="py-4 text-sm text-muted-foreground">Henüz ölçüm yok.</p> : (
+            <>
+              <Row label="Ana sayfa ziyareti" value={String(funnel.visits)} hint="Anonim oturum" />
+              <Row label="Ön değerlendirme başladı" value={String(funnel.started)} />
+              <Row label="Başvuru tamamlandı" value={String(funnel.completed)} />
+            </>
+          )}
         </section>
         <section className="rounded-2xl border border-border bg-card px-4">
           <h2 className="pt-4 font-medium">Otomasyon</h2>

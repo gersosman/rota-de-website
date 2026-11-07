@@ -11,6 +11,7 @@ const providerLabel: Record<string, string> = {
   telegram: "Telegram",
   email: "E-posta",
   payment: "Ödeme",
+  whatsapp: "WhatsApp",
 };
 
 export default async function IntegrationsPage() {
@@ -28,6 +29,7 @@ export default async function IntegrationsPage() {
       </p>
       <p className="mt-3">
         <Link href="/admin/telegram" className="text-sm text-accent">Telegram masasını aç</Link>
+        <Link href="/admin/mesajlar" className="ml-4 text-sm text-accent">Mesaj kutusu</Link>
       </p>
       <ul className="mt-6 space-y-3">
         {accounts.map((account) => (
@@ -35,7 +37,7 @@ export default async function IntegrationsPage() {
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-medium">{providerLabel[account.provider] ?? account.provider}</h2>
               <span className="rounded-full bg-muted px-2 py-1 text-xs">
-                {account.status === "connected" ? "Bağlı" : account.status === "mock" ? "MOCK" : "Bağlı değil"}
+                {account.status === "connected" ? "Bağlı" : account.status === "error" ? "Bağlantı hatası" : account.status === "mock" ? "MOCK" : "Kurulum bekleniyor"}
               </span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{account.last_error}</p>

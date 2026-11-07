@@ -18,10 +18,22 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
   const q = one(params.q);
   const status = one(params.status);
   const scenario = one(params.scenario);
+  const ce = one(params.ce);
+  const src3 = one(params.src3);
+  const german = one(params.german);
+  const family = one(params.family);
+  const source = one(params.source);
+  const waiting = one(params.waiting);
   const leads = await listLeads({
     q: q || undefined,
     status: status || undefined,
     scenario: scenario || undefined,
+    ce: ce || undefined,
+    src3: src3 || undefined,
+    german: german || undefined,
+    family: family || undefined,
+    source: source || undefined,
+    waiting: waiting || undefined,
   });
   return (
     <main className="mx-auto max-w-6xl">
@@ -38,6 +50,42 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
           {SCENARIO_HINTS.map((item) => <option key={item} value={item}>{SCENARIO_LABEL[item]}</option>)}
         </select>
         <Button type="submit" className="h-10">Filtrele</Button>
+        <select name="ce" defaultValue={ce} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">CE</option>
+          <option value="have">CE var</option>
+          <option value="planning">CE planı</option>
+        </select>
+        <select name="src3" defaultValue={src3} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">SRC3</option>
+          <option value="have">SRC3 var</option>
+          <option value="planning">SRC3 planı</option>
+          <option value="info">SRC3 bilgi</option>
+        </select>
+        <select name="family" defaultValue={family} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">Aile</option>
+          <option value="alone">Tek</option>
+          <option value="spouse">Eş</option>
+          <option value="family">Aile</option>
+        </select>
+        <select name="source" defaultValue={source} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">Kaynak</option>
+          <option value="website_assessment">Site</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="telegram">Telegram</option>
+          <option value="manual">Elle</option>
+        </select>
+        <select name="german" defaultValue={german} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">Almanca</option>
+          <option value="none">Yok</option>
+          <option value="A1">A1</option>
+          <option value="B1">B1</option>
+          <option value="B2">B2</option>
+        </select>
+        <select name="waiting" defaultValue={waiting} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
+          <option value="">Bekleyen</option>
+          <option value="human">İnsan desteği</option>
+          <option value="consultation">Görüşme</option>
+        </select>
       </form>
       <details className="mt-4 rounded-2xl border border-border bg-card p-4">
         <summary className="cursor-pointer text-sm font-medium">Elle aday ekle</summary>

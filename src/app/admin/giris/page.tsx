@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { loginAction } from "@/server/actions/auth";
 import { adminCount } from "@/server/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,8 @@ export default async function LoginPage(props: { searchParams: Promise<Record<st
           Henüz yönetici yok. <Link className="text-accent" href="/admin/kurulum">İlk kurulumu açın.</Link>
         </p>
       ) : null}
-      <form action={loginAction} className="mt-6 grid gap-4">
+      <form action="/api/admin/oturum" method="post" className="mt-6 grid gap-4">
+        <input type="hidden" name="islem" value="giris" />
         <div className="grid gap-1.5">
           <Label htmlFor="email">E-posta</Label>
           <Input id="email" name="email" type="email" autoComplete="username" required className="h-11" />

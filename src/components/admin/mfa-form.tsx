@@ -1,8 +1,4 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { confirmMfaAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,15 +7,16 @@ export function MfaForm({
   mode,
   secret,
   qrDataUrl,
+  codes,
+  error,
 }: {
   mode: "enroll" | "verify";
   secret?: string;
   qrDataUrl?: string;
+  codes?: string[] | null;
+  error?: string | null;
 }) {
-  const [codes, setCodes] = useState<string[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  if (codes) {
+  if (codes && codes.length > 0) {
     return (
       <div className="grid gap-4">
         <h2 className="font-serif text-3xl">Kurtarma kodları</h2>
@@ -35,17 +32,8 @@ export function MfaForm({
   }
 
   return (
-    <form
-      className="grid gap-4"
-      action={async (formData) => {
-        const result = await confirmMfaAction(formData);
-        if (result && "codes" in result && result.codes) {
-          setCodes(result.codes);
-          return;
-        }
-        if (result && !result.ok) setError(result.code === "rate" ? "Çok fazla deneme." : "Kod doğrulanamadı.");
-      }}
-    >
+    <form action="/api/admin/oturum" method="post" className="grid gap-4">
+      <input type="hidden" name="islem" value="mfa" />
       {mode === "enroll" && qrDataUrl ? (
         <div>
           <p className="text-sm leading-6 text-muted-foreground">Kimlik doğrulayıcı uygulamada bu kodu ekleyin, sonra 6 haneli kodu girin. MFA tamamlanmadan panele geçilmez.</p>

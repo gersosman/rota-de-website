@@ -137,11 +137,29 @@ async function migratePostgres() {
   }
 }
 
+async function bindToRequest() {
+  try {
+    await connection();
+  } catch (error) {
+    const digest = error && typeof error === "object" && "digest" in error ? String((error as { digest?: unknown }).digest ?? "") : "";
+    const message = error instanceof Error ? error.message : "";
+    if (
+      digest === "DYNAMIC_SERVER_USAGE" ||
+      digest === "NEXT_PRERENDER_INTERRUPTED" ||
+      message.includes("outside a request scope") ||
+      message.includes("couldn't be rendered statically")
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function sql<T = Record<string, unknown>>(
   text: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  await connection();
+  await bindToRequest();
   if (databaseUrl !== "") {
     await ensurePostgresSchema();
     const result = await getPool().query(text, params);
@@ -156,7 +174,7 @@ export async function sql<T = Record<string, unknown>>(
 }
 
 export async function withTransaction<T>(fn: (query: QueryFn) => Promise<T>): Promise<T> {
-  await connection();
+  await bindToRequest();
   if (databaseUrl !== "") {
     await ensurePostgresSchema();
     const client = await getPool().connect();

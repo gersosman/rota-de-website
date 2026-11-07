@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { logoutAction } from "@/server/actions/auth";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -46,7 +45,8 @@ export function AdminShell({
             </Link>
           ))}
         </nav>
-        <form action={logoutAction} className="hidden px-3 py-4 md:block">
+        <form action="/api/admin/oturum" method="post" className="hidden px-3 py-4 md:block">
+          <input type="hidden" name="islem" value="cikis" />
           <p className="truncate px-3 text-xs text-hero-muted">{name}</p>
           <Button type="submit" variant="outline" className="mt-3 w-full border-hero-border bg-transparent text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground">
             Çıkış
@@ -56,7 +56,8 @@ export function AdminShell({
       <div>
         <div className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
           <p className="truncate text-sm">{name}</p>
-          <form action={logoutAction}>
+          <form action="/api/admin/oturum" method="post">
+            <input type="hidden" name="islem" value="cikis" />
             <Button type="submit" variant="outline" size="sm">Çıkış</Button>
           </form>
         </div>

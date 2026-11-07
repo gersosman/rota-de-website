@@ -1,5 +1,4 @@
 import { redirect, unstable_rethrow } from "next/navigation";
-import { setupAction } from "@/server/actions/auth";
 import { adminCount } from "@/server/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +51,8 @@ export default async function SetupPage(props: { searchParams: Promise<Record<st
         {process.env.NODE_ENV !== "production" ? " Geliştirme modunda anahtar boş bırakılabilir." : ""}
       </p>
       {locked ? <p className="mt-4 text-sm text-destructive">Üretim kurulumu kilitli. ADMIN_SETUP_TOKEN tanımlayın.</p> : null}
-      <form action={setupAction} className="mt-6 grid gap-4">
+      <form action="/api/admin/oturum" method="post" className="mt-6 grid gap-4">
+        <input type="hidden" name="islem" value="kurulum" />
         <div className="grid gap-1.5">
           <Label htmlFor="token">Kurulum anahtarı</Label>
           <Input id="token" name="token" type="password" className="h-11" autoComplete="off" />

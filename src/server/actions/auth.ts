@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { publicGate } from "@/server/actions/guards";
 import {
@@ -39,9 +39,27 @@ export async function loginAction(formData: FormData) {
   redirect("/admin/mfa");
 }
 
+function failureCode(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = String((error as { code: unknown }).code);
+    if (/^[0-9A-Z]{5}$/.test(code)) return code;
+  }
+  return "sunucu";
+}
+
 export async function setupAction(formData: FormData) {
+  try {
+    await runSetup(formData);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("setup_failed", failureCode(error));
+    redirect(`/admin/kurulum?hata=${failureCode(error)}`);
+  }
+}
+
+async function runSetup(formData: FormData) {
   const gate = await publicGate("setup", 10, 60 * 60);
-  if (!gate.ok) redirect("/admin/kurulum?hata=rate");
+  if (!gate.ok) redirect(gate.code === "origin" ? "/admin/kurulum?hata=origin" : "/admin/kurulum?hata=rate");
   const token = String(formData.get("token") ?? "");
   if (!setupOpen(token)) redirect("/admin/kurulum?hata=anahtar");
   const parsed = z

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { setupAction } from "@/server/actions/auth";
 import { adminCount } from "@/server/auth";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,32 @@ const errors: Record<string, string> = {
   weak: "Parola en az 12 karakter olmalı ve harf ile rakam içermelidir.",
   exists: "Yönetici zaten var.",
   duplicate: "Bu e-posta kullanılamıyor.",
+  sunucu: "Kayıt tamamlanamadı. Sayfayı bir kez yenileyip yeniden deneyin.",
+  "42P01": "Veritabanı tabloları hazır değil. Sayfayı bir kez yenileyin.",
+  "28P01": "Veritabanı bu siteyi içeri almadı.",
+  "28000": "Veritabanı bu siteyi içeri almadı.",
+  "3D000": "Veritabanı bulunamadı.",
 };
 
+function readable(code: string): string {
+  if (errors[code]) return errors[code];
+  if (/^[0-9A-Z]{5}$/.test(code)) return `Kayıt tamamlanamadı. Kod: ${code}`;
+  return "";
+}
+
 export default async function SetupPage(props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if ((await adminCount()) > 0) redirect("/admin/giris");
+  try {
+    if ((await adminCount()) > 0) redirect("/admin/giris");
+  } catch (error) {
+    unstable_rethrow(error);
+    const code = error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : "sunucu";
+    return (
+      <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-4 py-16">
+        <h1 className="font-serif text-4xl">Kurulum açılamadı</h1>
+        <p className="mt-3 text-sm text-destructive">{readable(/^[0-9A-Z]{5}$/.test(code) ? code : "sunucu")}</p>
+      </main>
+    );
+  }
   const params = await props.searchParams;
   const code = typeof params.hata === "string" ? params.hata : "";
   const locked = process.env.NODE_ENV === "production" && !process.env.ADMIN_SETUP_TOKEN?.trim();
@@ -47,7 +69,7 @@ export default async function SetupPage(props: { searchParams: Promise<Record<st
           <Label htmlFor="password">Parola</Label>
           <Input id="password" name="password" type="password" required minLength={12} className="h-11" />
         </div>
-        {errors[code] ? <p className="text-sm text-destructive">{errors[code]}</p> : null}
+        {readable(code) ? <p className="text-sm text-destructive">{readable(code)}</p> : null}
         <Button type="submit" className="h-11" disabled={locked}>Yöneticiyi oluştur</Button>
       </form>
     </main>

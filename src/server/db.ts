@@ -81,7 +81,12 @@ function getLocal(): Promise<LocalDb> {
 }
 
 function getPool(): pg.Pool {
-  pool ??= new pg.Pool({ connectionString: databaseUrl, max: 5 });
+  const sslMode = /(?:\?|&)sslmode=([^&]+)/i.exec(databaseUrl)?.[1]?.toLowerCase();
+  pool ??= new pg.Pool({
+    connectionString: databaseUrl,
+    max: 5,
+    ssl: sslMode && sslMode !== "disable" ? { rejectUnauthorized: false } : undefined,
+  });
   return pool;
 }
 
@@ -97,8 +102,14 @@ async function ensurePostgresSchema() {
 
 async function migratePostgres() {
   const client = await getPool().connect();
+  let locked = false;
   try {
-    await client.query("select pg_advisory_lock(7272741)");
+    try {
+      await client.query("select pg_advisory_lock(7272741)");
+      locked = true;
+    } catch {
+      // Some hosted poolers reject session locks. The statements below are idempotent.
+    }
     await client.query(
       "create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())",
     );
@@ -121,7 +132,7 @@ async function migratePostgres() {
       }
     }
   } finally {
-    await client.query("select pg_advisory_unlock(7272741)").catch(() => undefined);
+    if (locked) await client.query("select pg_advisory_unlock(7272741)").catch(() => undefined);
     client.release();
   }
 }

@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       callback: update.callback,
       media: update.media,
       handle: update.handle,
+      userId: update.userId,
       delivery: "telegram",
       callbackId: update.callbackId,
     });

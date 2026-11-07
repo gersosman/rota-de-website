@@ -55,3 +55,11 @@ export async function staffReplyAction(formData: FormData) {
   const result = await sendStaffReply(admin.profileId, chat, String(formData.get("text") ?? ""));
   go(chat, result.detail);
 }
+
+export async function inboxReplyAction(formData: FormData) {
+  const admin = await requirePanel();
+  const chat = String(formData.get("chat") ?? "");
+  const result = await sendStaffReply(admin.profileId, chat, String(formData.get("text") ?? ""));
+  const safe = /^(tg:-?\d{1,20}|desk:local)$/.test(chat) ? chat : "";
+  redirect(`/admin/mesajlar?notice=${encodeURIComponent(result.detail.slice(0, 180))}${safe ? `&chat=${encodeURIComponent(safe)}` : ""}`);
+}

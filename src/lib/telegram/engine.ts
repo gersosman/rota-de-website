@@ -12,7 +12,11 @@ export type PrecheckDraft = {
   name?: string;
 };
 
-export type BotEffect = { type: "none" } | { type: "handoff" } | { type: "lead"; draft: PrecheckDraft };
+export type BotEffect =
+  | { type: "none" }
+  | { type: "handoff" }
+  | { type: "lead"; draft: PrecheckDraft }
+  | { type: "track"; code: string };
 
 export type TurnInput = {
   text: string;
@@ -34,24 +38,26 @@ export type TurnResult = {
   category: string;
 };
 
+const WELCOME =
+  "Merhaba! ROTA DE'ye hoş geldin.\n\nAlmanya'da şoförlük hedefin için sana yardımcı olabiliriz.\n\nİstersen ücretsiz ön değerlendirme oluşturabilir, Almanya'daki çalışma süreci hakkında bilgi alabilir veya ekibimizle görüşebilirsin.";
+
 const MENU: BotButton[][] = [
+  [{ label: "Ücretsiz ön değerlendirme", data: "precheck" }],
+  [{ label: "Almanya'da şoförlük", data: "germany" }],
   [
-    { label: "Ön kayıt", data: "precheck" },
-    { label: "Hizmetler", data: "services" },
+    { label: "Başvurumu takip et", data: "track" },
+    { label: "Destek ekibiyle görüş", data: "human" },
   ],
-  [
-    { label: "Sorular", data: "faq" },
-    { label: "İletişim", data: "contact" },
-  ],
-  [{ label: "İnsan", data: "human" }],
 ];
 
 const CALLBACK_LABELS: Record<string, string> = {
-  precheck: "Ön kayıt",
+  precheck: "Ücretsiz ön değerlendirme",
+  germany: "Almanya'da şoförlük",
+  track: "Başvurumu takip et",
   services: "Hizmetler",
   faq: "Sorular",
   contact: "İletişim",
-  human: "İnsan",
+  human: "Destek ekibiyle görüş",
   menu: "Menü",
   "c:TR": "Türkiye",
   "c:DE": "Almanya",
@@ -241,7 +247,17 @@ export function takeTurn(input: TurnInput): TurnResult {
 
   const action = callback || command;
   if (action === "start" || action === "help" || action === "menu") {
-    return idle("Menüden seçin. Telefon istenmez.", "menu", action === "start" ? input.welcomeEnabled : true);
+    return idle(action === "start" ? WELCOME : "Menüden seçin. Telefon istenmez.", "menu", action === "start" ? input.welcomeEnabled : true);
+  }
+  if (action === "germany") {
+    return idle(
+      "Almanya'da şoförlük sayfası sitededir. § 24a BeschV bir otomatik hak doğurmaz. SRC3, Alman FQN belgesinin yerine geçmez. Vize kararını yetkili makam verir.",
+      "germany",
+      true,
+    );
+  }
+  if (action === "track") {
+    return idle("Dosya numaranı yaz. Bu sohbet yalnız kendine bağlı dosyanın durumunu söyler.", "track", true);
   }
   if (action === "services") return servicesReply(input.services);
   if (action === "faq") return faqReply(input.faqs);
@@ -364,6 +380,17 @@ export function takeTurn(input: TurnInput): TurnResult {
       draft,
       effect: { type: "none" },
       category: "precheck",
+    };
+  }
+
+  const code = input.text.trim().toUpperCase();
+  if (/^RD-\d{4}-\d{5}$/.test(code)) {
+    return {
+      replies: [reply("Dosya kontrolü bu sohbetle sınırlıdır.")],
+      step: "idle",
+      draft: {},
+      effect: { type: "track", code },
+      category: "track",
     };
   }
 

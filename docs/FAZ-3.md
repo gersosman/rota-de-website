@@ -1,6 +1,8 @@
 # Faz 3
 
-Görsel ön değerlendirme, ilk taraf ölçümü ve WhatsApp Business Cloud API.
+Faz 4 bu kanaldan vazgeçti. WhatsApp kodu ve ortam değişkenleri kaldırıldı. Aşağıdaki not tarihçedir.
+
+Görsel ön değerlendirme ve ilk taraf ölçümü. WhatsApp Business Cloud API bu fazda yazılmıştı.
 
 Kişisel telefon yayımlanmaz. WhatsApp düğmesi, Meta işletme numarası doğrulanmadan açılmaz.
 

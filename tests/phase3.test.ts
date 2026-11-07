@@ -1,84 +1,35 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { PGlite } from "@electric-sql/pglite";
-import { signHmacSha256 } from "../src/lib/security/hmac.ts";
-import { buttonTitlesFit, buttonsForWaStep, takeWhatsappTurn, type WaStep } from "../src/lib/whatsapp/engine.ts";
-import { parseWhatsappBody } from "../src/lib/whatsapp/parse.ts";
-import { withinServiceWindow } from "../src/lib/whatsapp/window.ts";
 import { journeySchema } from "../src/lib/validation/assessment.ts";
+import { takeTurn } from "../src/lib/telegram/engine.ts";
+import { PIPELINE_STAGES } from "../src/lib/domain/pipeline.ts";
+import { guide } from "../src/lib/content/germany.ts";
 
-const base = { step: "idle" as const, draft: {}, welcomeEnabled: true };
+const base = {
+  media: false,
+  step: "idle" as const,
+  draft: {},
+  welcomeEnabled: true,
+  services: [],
+  faqs: [],
+  contactUrl: null,
+};
 
-test("whatsapp welcome does not ask for a phone or promise a visa", () => {
-  const turn = takeWhatsappTurn({ ...base, text: "/start", button: null });
+test("telegram welcome matches the public menu and does not promise a visa", () => {
+  const turn = takeTurn({ ...base, text: "/start", callback: null });
   const text = turn.replies.map((item) => item.text).join(" ");
+  const data = turn.replies.flatMap((item) => item.buttons.flat().map((button) => button.data));
   assert.match(text, /ROTA DE'ye hoş geldin/);
-  assert.equal(buttonTitlesFit(turn), true);
-  assert.doesNotMatch(text, /numaranı yaz|vize onayı|iş garantisi/i);
+  assert.ok(data.includes("precheck"));
+  assert.ok(data.includes("germany"));
+  assert.ok(data.includes("track"));
+  assert.ok(data.includes("human"));
+  assert.doesNotMatch(text, /iş garantisi|vize onayı/i);
 });
 
-test("whatsapp precheck creates a lead only after confirmation", () => {
-  let step = takeWhatsappTurn({ ...base, text: "", button: "precheck" });
-  const path: Array<[string, string | null]> = [
-    ["", "ce:yes"],
-    ["", "src:have"],
-    ["", "ex:y1_3"],
-    ["", "de:none"],
-    ["", "fa:alone"],
-    ["Ada Yılmaz", null],
-    ["Ankara", null],
-  ];
-  for (const [text, button] of path) {
-    step = takeWhatsappTurn({ ...base, text, button, step: step.step, draft: step.draft });
-    assert.equal(step.effect.type, "none");
-    assert.equal(buttonTitlesFit(step), true);
-  }
-  const saved = takeWhatsappTurn({ ...base, text: "", button: "ok:yes", step: step.step, draft: step.draft });
-  assert.equal(saved.effect.type, "lead");
-  assert.match(saved.replies.map((item) => item.text).join(" "), /onayı değildir/i);
-});
-
-test("whatsapp handoff and button titles stay within platform limits", () => {
-  const handoff = takeWhatsappTurn({ ...base, text: "", button: "human" });
-  assert.equal(handoff.effect.type, "handoff");
-  const steps: WaStep[] = ["idle", "ce", "src3", "experience", "german", "family", "spouse", "children", "confirm"];
-  for (const step of steps) {
-    for (const button of buttonsForWaStep(step)) assert.ok(button.title.length <= 20, button.title);
-  }
-});
-
-test("service window is 24 hours and signatures reject a tampered body", () => {
-  const now = new Date("2026-11-07T12:00:00Z");
-  assert.equal(withinServiceWindow(new Date("2026-11-07T11:00:00Z"), now), true);
-  assert.equal(withinServiceWindow(new Date("2026-11-06T11:00:00Z"), now), false);
-  assert.equal(withinServiceWindow(null, now), false);
-  const body = JSON.stringify({ entry: [] });
-  const secret = "meta-app-secret-value";
-  const signature = `sha256=${signHmacSha256(secret, body)}`;
-  assert.equal(signHmacSha256(secret, body), signature.slice(7));
-  assert.notEqual(signHmacSha256(secret, `${body} `), signature.slice(7));
-});
-
-test("whatsapp parser keeps the sender and ignores a bad status", () => {
-  const events = parseWhatsappBody({
-    entry: [{
-      changes: [{
-        value: {
-          messages: [{ id: "wamid.HBgLMTIzNDU2Nzg5", from: "4915112345678", type: "text", text: { body: "Merhaba" } }],
-          statuses: [{ id: "wamid.outbound", status: "not-a-status" }, { id: "wamid.outbound", status: "delivered" }],
-        },
-      }],
-    }],
-  });
-  assert.equal(events.length, 2);
-  assert.equal(events[0]?.kind, "message");
-  if (events[0]?.kind === "message") assert.equal(events[0].from, "4915112345678");
-  assert.equal(events[1]?.kind, "status");
-});
-
-test("journey schema keeps marketing consent separate and blocks missing acknowledgement", () => {
-  const parsed = journeySchema.safeParse({
+test("journey schema keeps marketing consent separate and requires a contact preference", () => {
+  const missing = journeySchema.safeParse({
     ce: "have",
     src3: "info",
     experience: "none",
@@ -88,26 +39,49 @@ test("journey schema keeps marketing consent separate and blocks missing acknowl
     phone: "+49 151 12345678",
     email: "",
     city: "Ankara",
-    whatsappOptIn: true,
+    contactPreference: "telegram",
     marketingOptIn: false,
     consent: true,
     disclaimerAck: false,
     idempotencyKey: "journey-key-1",
   });
-  assert.equal(parsed.success, false);
+  assert.equal(missing.success, false);
+  const parsed = journeySchema.safeParse({
+    ce: "have",
+    src3: "have",
+    experience: "y5_plus",
+    german: "none",
+    family: "alone",
+    fullName: "Ada Yılmaz",
+    phone: "+49 151 12345678",
+    email: "",
+    city: "Ankara",
+    contactPreference: "telegram",
+    note: "Kısa not",
+    marketingOptIn: false,
+    consent: true,
+    disclaimerAck: true,
+    idempotencyKey: "journey-key-1",
+  });
+  assert.equal(parsed.success, true);
 });
 
-test("phase 3 tables enable row level security and there is no broadcast sender", async () => {
-  const db = new PGlite();
-  for (const name of ["001_init.sql", "002_telegram.sql", "003_phase3.sql"]) {
-    const sqlText = await readFile(new URL(`../migrations/${name}`, import.meta.url), "utf8");
-    await db.exec(sqlText);
-  }
-  const security = await db.query<{ relrowsecurity: boolean }>(
-    "select relrowsecurity from pg_class where relname = 'whatsapp_events'",
-  );
-  assert.equal(security.rows[0]?.relrowsecurity, true);
-  const source = await readFile(new URL("../src/server/whatsapp/inbox.ts", import.meta.url), "utf8");
-  assert.equal(source.includes("broadcast"), false);
-  assert.match(source, /withinServiceWindow/);
+test("public copy does not offer WhatsApp or a 3000 euro salary", async () => {
+  const tr = await readFile(new URL("../src/lib/i18n/tr.ts", import.meta.url), "utf8");
+  const de = await readFile(new URL("../src/lib/i18n/de.ts", import.meta.url), "utf8");
+  assert.equal(/whatsapp/i.test(tr), false);
+  assert.equal(/whatsapp/i.test(de), false);
+  assert.equal(/3\.000/.test(tr), false);
+  assert.equal(/3\.000/.test(de), false);
+});
+
+test("germany guide cites the statute and does not treat the 15 month path as a right", () => {
+  const text = guide.tr.map((section) => `${section.summary} ${section.paragraphs.join(" ")}`).join(" ");
+  assert.match(text, /otomatik hak değildir/);
+  assert.match(text, /SRC3/);
+  assert.match(text, /Fahrerqualifizierungsnachweis/);
+  assert.equal(guide.tr.some((section) => section.sourceUrl.includes("gesetze-im-internet.de")), true);
+  assert.equal(PIPELINE_STAGES.includes("contract"), true);
+  assert.equal(PIPELINE_STAGES.includes("visa_approved"), true);
+  assert.notEqual(PIPELINE_STAGES.indexOf("contract"), PIPELINE_STAGES.indexOf("visa_approved"));
 });

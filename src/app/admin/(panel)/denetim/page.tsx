@@ -1,3 +1,4 @@
+import { LEGAL_REVIEW } from "@/lib/content/germany";
 import { formatDateTime } from "@/lib/format";
 import { sql } from "@/server/db";
 
@@ -11,6 +12,12 @@ export default async function AuditPage() {
   return (
     <main className="mx-auto max-w-4xl">
       <h1 className="font-serif text-4xl">Denetim</h1>
+      <section className="mt-6 rounded-2xl border border-amber-700/30 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+        <h2 className="font-medium">Hukuki inceleme listesi</h2>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {LEGAL_REVIEW.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </section>
       <p className="mt-2 text-sm text-muted-foreground">Kişisel veri içeriği bu listede tutulmaz. Son 100 işlem.</p>
       {rows.length === 0 ? <p className="mt-8 text-sm">Kayıt yok.</p> : (
         <table className="mt-6 w-full text-sm">

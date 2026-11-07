@@ -70,7 +70,7 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
         <select name="source" defaultValue={source} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
           <option value="">Kaynak</option>
           <option value="website_assessment">Site</option>
-          <option value="whatsapp">WhatsApp</option>
+          <option value="whatsapp">Eski kanal</option>
           <option value="telegram">Telegram</option>
           <option value="manual">Elle</option>
         </select>

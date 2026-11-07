@@ -11,7 +11,7 @@ const providerLabel: Record<string, string> = {
   telegram: "Telegram",
   email: "E-posta",
   payment: "Ödeme",
-  whatsapp: "WhatsApp",
+  whatsapp: "Kaldırılan kanal",
 };
 
 export default async function IntegrationsPage() {
@@ -32,7 +32,7 @@ export default async function IntegrationsPage() {
         <Link href="/admin/mesajlar" className="ml-4 text-sm text-accent">Mesaj kutusu</Link>
       </p>
       <ul className="mt-6 space-y-3">
-        {accounts.map((account) => (
+        {accounts.filter((account) => account.provider !== "whatsapp").map((account) => (
           <li key={account.provider} className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-medium">{providerLabel[account.provider] ?? account.provider}</h2>

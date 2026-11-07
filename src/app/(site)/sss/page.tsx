@@ -11,12 +11,19 @@ export default async function FaqPage() {
     <main className="mx-auto max-w-3xl px-4 py-14">
       <h1 className="font-serif text-4xl">{copy.faq.title}</h1>
       <p className="mt-4 text-muted-foreground">{copy.faq.lead}</p>
-      <div className="mt-8 divide-y divide-border rounded-2xl border border-border bg-card">
-        {copy.faq.items.map((item) => (
-          <details key={item.q} className="px-5 py-4">
-            <summary className="cursor-pointer font-medium">{item.q}</summary>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.a}</p>
-          </details>
+      <div className="mt-8 space-y-8">
+        {copy.faq.groups.map((group) => (
+          <section key={group.title}>
+            <h2 className="font-serif text-2xl">{group.title}</h2>
+            <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
+              {group.items.map((item) => (
+                <details key={item.q} className="px-5 py-4">
+                  <summary className="cursor-pointer font-medium">{item.q}</summary>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
       <h2 className="mt-12 font-serif text-2xl">{copy.faq.extra}</h2>

@@ -1,16 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { HomeStories } from "@/components/site/home-stories";
+import { Outcomes } from "@/components/site/outcomes";
+import { StoryRail } from "@/components/site/story-rail";
 import { TrackAnchor } from "@/components/site/track-anchor";
 import { getDictionary } from "@/lib/i18n";
-import { publicWhatsappLink } from "@/server/whatsapp/inbox";
+import { publishedStories } from "@/server/operations";
+import { publicBotLink } from "@/server/telegram/inbox";
 
 export const instant = false;
 
 export default async function HomePage() {
   const copy = await getDictionary();
-  const whatsapp = await publicWhatsappLink();
   const text = copy.phase3;
+  const bot = await publicBotLink();
+  const stories = await publishedStories();
   return (
     <main>
       <section className="relative overflow-hidden bg-[#0c1c2e] text-[#f4f1ea]">
@@ -23,13 +27,13 @@ export default async function HomePage() {
               <Link href="/on-degerlendirme" className="inline-flex h-12 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground">
                 {text.primary}
               </Link>
-              {whatsapp ? (
-                <TrackAnchor href={whatsapp} event="whatsapp_click" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
-                  {text.whatsapp}
+              {bot ? (
+                <TrackAnchor href={bot} event="telegram_click" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
+                  {text.telegramCta}
                 </TrackAnchor>
               ) : (
-                <Link href="/iletisim#whatsapp" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
-                  {text.whatsapp}
+                <Link href="/iletisim" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
+                  {text.telegramPending}
                 </Link>
               )}
             </div>
@@ -47,11 +51,20 @@ export default async function HomePage() {
           ))}
         </ul>
       </section>
+      <Outcomes title={copy.outcomes.title} labels={copy.outcomes} hidden={copy.outcomes.hidden} />
       <HomeStories copy={text} />
+      <StoryRail
+        title={copy.stories.title}
+        real={stories.map((item) => ({ id: item.id, name: item.display_name, city: item.city ?? "", body: item.body, representative: false }))}
+        sampleTitle={copy.stories.sampleTitle}
+        sampleNote={copy.stories.sampleNote}
+        emptyNote={copy.stories.realNote}
+      />
       <section className="bg-[#163049] text-[#f4f1ea]">
         <div className="mx-auto max-w-3xl px-4 py-16">
           <p className="font-serif text-3xl leading-snug text-balance">{text.salaryTitle}</p>
           <p className="mt-4 text-sm leading-6 text-white/70">{text.salaryNote}</p>
+          <Link href="/almanyada-soforluk#maas" className="mt-6 inline-flex text-sm text-accent">{copy.nav.germany}</Link>
         </div>
       </section>
       <section className="mx-auto max-w-3xl px-4 py-14">

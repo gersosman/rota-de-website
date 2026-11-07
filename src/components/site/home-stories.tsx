@@ -113,7 +113,7 @@ export function HomeStories({ copy }: { copy: Copy }) {
           <h2 className="font-serif text-4xl text-balance">{copy.srcTitle}</h2>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
-              ["have", copy.srcHave, copy.srcHaveBody, "/photos/yard.jpg", copy.photoYard],
+              ["have", copy.srcHave, copy.srcHaveBody, "/photos/scania.jpg", copy.photoScania],
               ["planning", copy.srcPlan, copy.srcPlanBody, "/photos/scania.jpg", copy.photoScania],
               ["info", copy.srcInfo, copy.srcInfoBody, "/photos/city.jpg", copy.photoCity],
             ].map(([id, label, body, image, alt]) => (

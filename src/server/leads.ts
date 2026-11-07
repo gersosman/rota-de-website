@@ -6,7 +6,6 @@ import { classifyAssessment } from "@/lib/domain/classify";
 import type { LeadStatus, ScenarioHint } from "@/lib/domain/labels";
 import { escapeLike, isUuid, jsonArray, num } from "@/lib/format";
 import type { AssessmentInput, ContactInput, JourneyInput } from "@/lib/validation/assessment";
-import type { WaDraft } from "@/lib/whatsapp/engine";
 
 const CONSENT_VERSION = "onay-2026-11";
 
@@ -55,6 +54,7 @@ type LeadRow = {
   children_ages: string | null;
   city: string | null;
   marketing_opt_in: boolean;
+  pipeline_stage: string;
   scenario_hint: ScenarioHint | null;
   notes: string | null;
   last_contact_at: string | null;
@@ -214,6 +214,7 @@ export async function createAssessmentLead(input: AssessmentInput) {
 export async function createTelegramLead(input: {
   fullName: string;
   telegramHandle: string | null;
+  telegramUserId?: string | null;
   country: string | null;
   ce: "yes" | "no" | null;
   experienceRange: string | null;
@@ -228,18 +229,19 @@ export async function createTelegramLead(input: {
     const licence = input.ce === "yes" ? ["CE"] : [];
     const leads = await query<{ id: string }>(
       `insert into leads (
-         public_code, full_name, contact_preference, telegram_handle, country,
+         public_code, full_name, contact_preference, telegram_handle, telegram_user_id, country,
          licence_classes, experience_range, eu_eea_licence, code95_status, german_level,
          intent, age_range, source, status, scenario_hint, notes, follow_up_on, last_contact_at
        ) values (
-         $1, $2, 'telegram', $3, $4,
-         $5::jsonb, $6, 'unknown', 'unknown', $7,
-         'unsure', 'undisclosed', 'telegram', $8, $9, $10, $11, now()
+         $1, $2, 'telegram', $3, $4, $5,
+         $6::jsonb, $7, 'unknown', 'unknown', $8,
+         'unsure', 'undisclosed', 'telegram', $9, $10, $11, $12, now()
        ) returning id`,
       [
         publicCode,
         input.fullName,
         input.telegramHandle,
+        input.telegramUserId ?? null,
         input.country,
         JSON.stringify(licence),
         input.experienceRange,
@@ -266,59 +268,6 @@ export async function createTelegramLead(input: {
       entityId: leadId,
       metadata: { status: input.status },
     });
-    return { id: leadId, publicCode };
-  });
-}
-
-const GERMAN_FROM_JOURNEY = { none: "none", start: "A1", mid: "B1", good: "B2", beginner: "A1" } as const;
-
-export async function createWhatsappLead(input: { draft: WaDraft; phone: string | null; handoff: boolean }) {
-  const draft = input.draft;
-  const german = draft.german ? GERMAN_FROM_JOURNEY[draft.german] : null;
-  return withTransaction(async (query) => {
-    const publicCode = await nextPublicCode(query);
-    const leads = await query<{ id: string }>(
-      `insert into leads (
-         public_code, full_name, contact_preference, phone, country, city, licence_classes,
-         experience_range, eu_eea_licence, code95_status, german_level, intent, age_range,
-         ce_intent, src3_status, family_status, spouse_german, children_ages,
-         source, status, scenario_hint, notes, follow_up_on, last_contact_at
-       ) values (
-         $1, $2, 'whatsapp', $3, null, $4, $5::jsonb,
-         $6, 'unknown', 'unknown', $7, 'unsure', 'undisclosed',
-         $8, $9, $10, $11, $12,
-         'whatsapp', $13, 'INSUFFICIENT_INFORMATION', $14, $15, now()
-       ) returning id`,
-      [
-        publicCode,
-        draft.name || "WhatsApp adayı",
-        input.phone,
-        draft.city ?? null,
-        JSON.stringify(draft.ce === "yes" ? ["CE"] : []),
-        draft.experience ?? null,
-        german,
-        draft.ce === "yes" ? "have" : draft.ce === "plan" ? "planning" : null,
-        draft.src3 === "have" ? "have" : draft.src3 === "plan" ? "planning" : draft.src3 === "info" ? "info" : null,
-        draft.family ?? null,
-        draft.spouse ?? null,
-        draft.children || null,
-        input.handoff ? "CONSULTATION_PENDING" : "NEEDS_REVIEW",
-        input.handoff ? "WhatsApp insan talebi. Telefon yayımlanmaz." : "WhatsApp ön kayıt. Hukuki karar değildir.",
-        input.handoff ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : null,
-      ],
-    );
-    const leadId = leads[0]?.id;
-    if (!leadId) throw new Error("lead_insert_failed");
-    await query(`insert into lead_status_events (lead_id, to_status, note) values ($1, $2, $3)`, [
-      leadId,
-      input.handoff ? "CONSULTATION_PENDING" : "NEEDS_REVIEW",
-      "WhatsApp kaydı. Onay değildir.",
-    ]);
-    await query(
-      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_chat', $2, true)`,
-      [leadId, CONSENT_VERSION],
-    );
-    await auditWith(query, { action: "lead.whatsapp_created", entityType: "lead", entityId: leadId, metadata: { handoff: input.handoff } });
     return { id: leadId, publicCode };
   });
 }
@@ -353,7 +302,7 @@ export async function createJourneyLead(input: JourneyInput) {
         publicCode,
         input.fullName,
         email,
-        input.whatsappOptIn ? "whatsapp" : email ? "email" : "phone",
+        input.contactPreference,
         input.phone,
         input.city,
         JSON.stringify(input.ce === "have" ? ["CE"] : []),
@@ -367,7 +316,9 @@ export async function createJourneyLead(input: JourneyInput) {
         input.marketingOptIn,
         classification.leadStatus,
         classification.hint,
-        "Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.",
+        input.note?.trim()
+          ? `Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.\n${input.note.trim().slice(0, 500)}`
+          : "Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.",
       ],
     );
     const leadId = leads[0]?.id;
@@ -386,14 +337,14 @@ export async function createJourneyLead(input: JourneyInput) {
       leadId,
       CONSENT_VERSION,
     ]);
-    if (input.whatsappOptIn) {
+    if (input.contactPreference === "telegram") {
       await query(
-        `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_service', $2, true)`,
+        `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'telegram_service', $2, true)`,
         [leadId, CONSENT_VERSION],
       );
     }
     await query(
-      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'whatsapp_marketing', $2, $3)`,
+      `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'marketing', $2, $3)`,
       [leadId, CONSENT_VERSION, input.marketingOptIn],
     );
     await query("insert into intake_submissions (idempotency_key, lead_id, public_code) values ($1, $2, $3)", [
@@ -485,6 +436,11 @@ export async function createContactLead(input: ContactInput) {
     await query(
       `insert into lead_status_events (lead_id, to_status, note) values ($1, 'NEW', 'İletişim formu')`,
       [leadId],
+    );
+    await query(
+      `insert into contact_messages (lead_id, full_name, email, message, contact_preference, status)
+       values ($1, $2, $3, $4, $5, 'new')`,
+      [leadId, input.fullName, input.email.toLowerCase(), input.message, input.contactPreference],
     );
     await query(
       `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'contact', $2, true)`,
@@ -592,7 +548,7 @@ export async function listLeads(filters: {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads
      where ${where.join(" and ")}
@@ -609,7 +565,7 @@ export async function getLead(id: string) {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads where id = $1`,
     [id],
@@ -679,6 +635,7 @@ export async function getLead(id: string) {
     spouseGerman: lead.spouse_german,
     childrenAges: lead.children_ages,
     marketingOptIn: Boolean(lead.marketing_opt_in),
+    pipelineStage: lead.pipeline_stage,
     updatedAt: lead.updated_at,
     events,
     notesList: notes,

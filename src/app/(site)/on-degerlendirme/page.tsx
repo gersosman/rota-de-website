@@ -1,6 +1,6 @@
 import { JourneyForm } from "@/components/forms/journey-form";
 import { getDictionary } from "@/lib/i18n";
-import { publicWhatsappLink } from "@/server/whatsapp/inbox";
+import { publicBotLink } from "@/server/telegram/inbox";
 
 export const instant = false;
 
@@ -12,11 +12,11 @@ export default async function AssessmentPage(props: { searchParams: Promise<Reco
   const params = await props.searchParams;
   const copy = await getDictionary();
   const text = copy.phase3;
-  const whatsapp = await publicWhatsappLink();
+  const telegram = await publicBotLink();
   return (
     <main>
       <JourneyForm
-        whatsappHref={whatsapp}
+        telegramHref={telegram}
         initial={{
           ce: one(params.ce),
           src3: one(params.src3),
@@ -46,7 +46,7 @@ export default async function AssessmentPage(props: { searchParams: Promise<Reco
           spouseLater: text.spouseLater,
           childrenHint: text.childrenHint,
           papers: text.papers,
-          whatsappPending: text.whatsappPending,
+          telegramPending: text.telegramPending,
           consent: copy.assessment.consent,
           ack: copy.assessment.ack,
           errors: {

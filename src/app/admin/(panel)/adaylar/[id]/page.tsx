@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addNoteAction, anonymizeLeadAction, changeStatusAction, followUpAction } from "@/server/actions/crm";
-import { mergeLeadAction } from "@/server/actions/whatsapp";
+import { addNoteAction, anonymizeLeadAction, changeStatusAction, followUpAction, mergeLeadAction } from "@/server/actions/crm";
+import { pipelineAction } from "@/server/actions/operations";
 import { LEAD_STATUSES, SCENARIO_LABEL, STATUS_LABEL } from "@/lib/domain/labels";
+import { PIPELINE_LABEL, PIPELINE_STAGES } from "@/lib/domain/pipeline";
 import { formatDateTime, formatMoney, jsonObject, num } from "@/lib/format";
 import { getLead, phoneSuggestions } from "@/server/leads";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +87,16 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
           </form>
         </section>
         <section className="space-y-4">
+          <form action={pipelineAction} className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="font-medium">Süreç aşaması</h2>
+            <input type="hidden" name="leadId" value={lead.id} />
+            <select name="stage" defaultValue={lead.pipelineStage} className="mt-3 h-10 w-full rounded-lg border border-input bg-card px-2 text-sm">
+              {PIPELINE_STAGES.map((stage) => <option key={stage} value={stage}>{PIPELINE_LABEL[stage]}</option>)}
+            </select>
+            <Input name="note" placeholder="Aşama notu" className="mt-2 h-10" />
+            <p className="mt-2 text-xs text-muted-foreground">İş sözleşmesi ile vize onayı ayrı aşamalardır. Biri diğerinin yerine geçmez.</p>
+            <Button type="submit" className="mt-3 h-10">Aşamayı kaydet</Button>
+          </form>
           <form action={changeStatusAction} className="rounded-2xl border border-border bg-card p-4">
             <h2 className="font-medium">Durum</h2>
             <input type="hidden" name="leadId" value={lead.id} />

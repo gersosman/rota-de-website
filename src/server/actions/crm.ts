@@ -87,6 +87,16 @@ export async function anonymizeLeadAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
+export async function mergeLeadAction(formData: FormData) {
+  const admin = await requirePanel();
+  const source = String(formData.get("source") ?? "");
+  const target = String(formData.get("target") ?? "").trim().toUpperCase();
+  const { mergeLeads } = await import("@/server/leads");
+  const result = await mergeLeads(admin.profileId, source, target);
+  revalidatePath("/admin/adaylar");
+  redirect(`/admin/adaylar/${source}?notice=${encodeURIComponent(result.detail)}`);
+}
+
 export async function rejectDeletionAction(formData: FormData) {
   const admin = await requirePanel();
   const requestId = String(formData.get("requestId") ?? "");

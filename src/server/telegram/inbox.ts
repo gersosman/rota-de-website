@@ -2,7 +2,9 @@ import "server-only";
 
 import { sql, withTransaction } from "@/server/db";
 import { audit } from "@/server/audit";
+import { STATUS_LABEL, type LeadStatus } from "@/lib/domain/labels";
 import { createTelegramLead } from "@/server/leads";
+import { notifyAdmin } from "@/server/telegram/notify";
 import { listFaqs, publishedServices } from "@/server/knowledge";
 import { allowRate, hashValue } from "@/server/rate-limit";
 import {
@@ -91,8 +93,14 @@ async function attachLead(conversationId: string, leadId: string) {
   );
 }
 
-async function openLead(session: SessionRow, draft: PrecheckDraft, handle: string | null, handoff: boolean) {
+async function openLead(session: SessionRow, draft: PrecheckDraft, handle: string | null, userId: string | null, handoff: boolean) {
   if (session.lead_id) {
+    if (userId) {
+      await sql(
+        "update leads set telegram_user_id = coalesce(telegram_user_id, $2), updated_at = now() where id = $1 and deleted_at is null",
+        [session.lead_id, userId],
+      );
+    }
     const rows = await sql<{ public_code: string }>("select public_code from leads where id = $1", [session.lead_id]);
     if (handoff) {
       await sql(
@@ -101,12 +109,16 @@ async function openLead(session: SessionRow, draft: PrecheckDraft, handle: strin
         [session.lead_id, tomorrow()],
       );
       await sql("update conversations set status = 'waiting_human', updated_at = now() where id = $1", [session.conversation_id]);
+      if (rows[0]?.public_code) {
+        await notifyAdmin(`ROTA DE — Destek talebi\n\nBaşvuru No: ${rows[0].public_code}\nKaynak: Telegram\n\nAdmin panelinden görüntüle.`);
+      }
     }
     return rows[0]?.public_code ?? null;
   }
   const created = await createTelegramLead({
     fullName: draft.name || "Telegram adayı",
     telegramHandle: handle,
+    telegramUserId: userId,
     country: draft.country ?? null,
     ce: draft.ce ?? null,
     experienceRange: draft.experience ?? null,
@@ -120,7 +132,70 @@ async function openLead(session: SessionRow, draft: PrecheckDraft, handle: strin
   if (handoff) {
     await sql("update conversations set status = 'waiting_human', updated_at = now() where id = $1", [session.conversation_id]);
   }
+  await notifyAdmin(
+    [
+      handoff ? "ROTA DE — Destek talebi" : "ROTA DE — Yeni başvuru",
+      "",
+      `Başvuru No: ${created.publicCode}`,
+      `Ad Soyad: ${draft.name || "Telegram adayı"}`,
+      "Kaynak: Telegram",
+      `CE: ${draft.ce === "yes" ? "Var" : draft.ce === "no" ? "Yok" : "Belirtilmedi"}`,
+      `Deneyim: ${draft.experience === "y5_plus" ? "5+ yıl" : draft.experience === "y1_3" ? "1–3 yıl" : draft.experience === "none" ? "Yok" : "Belirtilmedi"}`,
+      "",
+      "Admin panelinden görüntüle.",
+    ].join("\n"),
+  );
   return created.publicCode;
+}
+
+async function trackReply(leadId: string | null, userId: string | null, code: string) {
+  const rows = await sql<{ id: string; status: LeadStatus; telegram_user_id: string | null }>(
+    "select id, status, telegram_user_id from leads where public_code = $1 and deleted_at is null and merged_into is null",
+    [code],
+  );
+  const lead = rows[0];
+  const owns = Boolean(lead && (lead.id === leadId || (userId && lead.telegram_user_id === userId)));
+  if (!owns || !lead) return "Bu sohbet bu dosyaya bağlı değil.";
+  return `${code}: ${STATUS_LABEL[lead.status]}. Bu bir vize veya iş onayı değildir.`;
+}
+
+async function adminCommand(chatId: string | null, text: string) {
+  const adminId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() ?? "";
+  if (!chatId || !adminId || chatId !== adminId) return null;
+  const command = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  if (command !== "/status" && command !== "/pending" && command !== "/help") return null;
+  if (command === "/help") {
+    return "/status bağlantı ve sayılar\n/pending son dosyalar\n/help bu liste\nBu komutlar yalnız tanımlı yönetici sohbetinde çalışır.";
+  }
+  if (command === "/status") {
+    const account = await sql<{ status: string }>("select status from integration_accounts where provider = 'telegram'");
+    const counts = await sql<{ pending: number; fresh: number }>(
+      `select
+         count(*) filter (where status = 'CONSULTATION_PENDING')::int as pending,
+         count(*) filter (where status = 'NEW')::int as fresh
+       from leads where deleted_at is null and merged_into is null`,
+    );
+    const state = account[0]?.status === "connected" ? "Bağlı" : "Kurulum bekliyor";
+    return `Telegram: ${state}\nGörüşme bekleyen: ${Number(counts[0]?.pending ?? 0)}\nYeni kayıt: ${Number(counts[0]?.fresh ?? 0)}\nToken bu mesaja yazılmaz.`;
+  }
+  const rows = await sql<{ public_code: string; full_name: string }>(
+    `select public_code, full_name from leads
+     where deleted_at is null and merged_into is null and status in ('NEW', 'CONSULTATION_PENDING', 'NEEDS_REVIEW')
+     order by created_at desc limit 5`,
+  );
+  if (rows.length === 0) return "Bekleyen kayıt yok.";
+  return ["Son kayıtlar:", ...rows.map((row) => `${row.public_code} ${row.full_name}`), "Telefon bu listede yok."].join("\n");
+}
+
+export async function listTelegramThreads(humanOnly: boolean) {
+  return sql<{ id: string; status: string; external_thread_id: string | null; updated_at: string; public_code: string | null }>(
+    `select c.id, c.status, c.external_thread_id, c.updated_at, l.public_code
+     from conversations c
+     left join leads l on l.id = c.lead_id
+     where c.channel = 'telegram' ${humanOnly ? "and c.status = 'waiting_human'" : ""}
+     order by c.updated_at desc
+     limit 40`,
+  );
 }
 
 async function storeMessage(conversationId: string, direction: "inbound" | "outbound", body: string, category: string) {
@@ -137,10 +212,13 @@ async function deliver(delivery: Delivery, chatId: string | null, replies: BotRe
       await storeMessage(conversationId, "outbound", item.text, delivery === "desk" ? "desk" : "send_failed");
       continue;
     }
+    const markup = item.buttons.length
+      ? { inline_keyboard: item.buttons.map((row) => row.map((button) => ({ text: button.label, callback_data: button.data }))) }
+      : undefined;
     const sent = await telegramCall("sendMessage", {
       chat_id: chatId,
       text: item.text,
-      reply_markup: { inline_keyboard: item.buttons.map((row) => row.map((button) => ({ text: button.label, callback_data: button.data }))) },
+      ...(markup ? { reply_markup: markup } : {}),
     });
     await storeMessage(conversationId, "outbound", item.text, sent.ok ? "telegram" : "send_failed");
     if (!sent.ok) {
@@ -155,6 +233,7 @@ async function deliver(delivery: Delivery, chatId: string | null, replies: BotRe
 export async function runChatTurn(input: {
   chatKey: string;
   chatId: string | null;
+  userId?: string | null;
   text: string;
   callback: string | null;
   media: boolean;
@@ -167,6 +246,13 @@ export async function runChatTurn(input: {
     return { ok: false as const, reason: "rate" as const };
   }
   const session = await ensureConversation(input.chatKey);
+  const adminReply = await adminCommand(input.chatId, input.text);
+  if (adminReply) {
+    const inbound = input.text.slice(0, 200);
+    if (inbound) await storeMessage(session.conversation_id, "inbound", inbound, "admin_command");
+    await deliver(input.delivery, input.chatId, [{ text: adminReply, buttons: [] }], session.conversation_id);
+    return { ok: true as const, replies: [{ text: adminReply, buttons: [] }], code: null };
+  }
   const facts = await contextForTurn();
   const turn = takeTurn({
     text: input.text,
@@ -182,9 +268,13 @@ export async function runChatTurn(input: {
   const inbound = input.callback ? labelForCallback(input.callback) : input.text || (input.media ? "Medya gönderildi, saklanmadı." : "");
   if (inbound) await storeMessage(session.conversation_id, "inbound", inbound, turn.category);
   let code: string | null = null;
-  if (turn.effect.type === "lead") code = await openLead(session, turn.effect.draft, input.handle, false);
-  if (turn.effect.type === "handoff") code = await openLead(session, { name: "Telegram adayı" }, input.handle, true);
-  const replies = code ? [...turn.replies, { text: `Dosya ${code}. Onay değildir.`, buttons: turn.replies[0]?.buttons ?? [] }] : turn.replies;
+  if (turn.effect.type === "lead") code = await openLead(session, turn.effect.draft, input.handle, input.userId ?? null, false);
+  if (turn.effect.type === "handoff") code = await openLead(session, { name: "Telegram adayı" }, input.handle, input.userId ?? null, true);
+  let replies = turn.replies;
+  if (turn.effect.type === "track") {
+    replies = [{ text: await trackReply(session.lead_id, input.userId ?? null, turn.effect.code), buttons: turn.replies[0]?.buttons ?? [] }];
+  }
+  replies = code ? [...replies, { text: `Dosya ${code}. Onay değildir.`, buttons: replies[0]?.buttons ?? [] }] : replies;
   await remember(input.chatKey, turn.step, turn.draft);
   await sql("update conversations set updated_at = now() where id = $1", [session.conversation_id]);
   await sql("update leads set last_contact_at = now(), updated_at = now() where id = (select lead_id from conversations where id = $1)", [
@@ -223,6 +313,7 @@ export function parseTelegramUpdate(value: unknown): {
   callbackId: string | null;
   media: boolean;
   handle: string | null;
+  userId: string | null;
 } | null {
   if (!value || typeof value !== "object") return null;
   const update = value as Record<string, unknown>;
@@ -238,7 +329,18 @@ export function parseTelegramUpdate(value: unknown): {
   const callback = typeof callbackQuery?.data === "string" ? callbackQuery.data.slice(0, 64) : null;
   const callbackId = typeof callbackQuery?.id === "string" ? callbackQuery.id.slice(0, 120) : null;
   const media = Boolean(message) && !text && !callback;
-  return { updateId, chatId, text, callback, callbackId, media, handle: cleanHandle(typeof from?.username === "string" ? from.username : null) };
+  const rawUser = from?.id;
+  const userId = typeof rawUser === "number" || typeof rawUser === "string" ? String(rawUser) : "";
+  return {
+    updateId,
+    chatId,
+    text,
+    callback,
+    callbackId,
+    media,
+    handle: cleanHandle(typeof from?.username === "string" ? from.username : null),
+    userId: /^\d{1,20}$/.test(userId) ? userId : null,
+  };
 }
 
 export async function refreshTelegramConnection(actorId: string) {

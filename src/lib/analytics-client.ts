@@ -9,7 +9,6 @@ const NAMES = [
   "family_choice",
   "form_complete",
   "form_abandon",
-  "whatsapp_click",
   "telegram_click",
 ] as const;
 

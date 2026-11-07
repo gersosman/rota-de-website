@@ -20,7 +20,8 @@ test("start offers the menu and does not ask for a phone number", () => {
   const text = turn.replies.map((item) => item.text).join(" ");
   const data = turn.replies.flatMap((item) => item.buttons.flat().map((button) => button.data));
   assert.equal(turn.effect.type, "none");
-  assert.equal(labelForCallback("precheck"), "Ön kayıt");
+  assert.equal(labelForCallback("precheck"), "Ücretsiz ön değerlendirme");
+  assert.match(text, /ROTA DE'ye hoş geldin/);
   assert.ok(data.includes("precheck"));
   assert.ok(data.includes("human"));
   assert.doesNotMatch(text, /numaranızı yazın|telefonunuzu gönderin|\+90/i);

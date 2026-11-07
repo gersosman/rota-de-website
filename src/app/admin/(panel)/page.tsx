@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AUTOMATION_LABEL } from "@/lib/domain/labels";
 import { formatDateTime, formatMoney, num } from "@/lib/format";
 import { dashboardData } from "@/server/leads";
-import { funnelCounts } from "@/server/whatsapp/inbox";
+import { funnelCounts } from "@/server/analytics";
+import { outcomeCounts } from "@/server/operations";
 
 export const instant = false;
 
@@ -19,12 +20,11 @@ function Row({ label, value, hint }: { label: string; value: string; hint?: stri
 }
 
 export default async function DashboardPage() {
-  const [data, funnel] = await Promise.all([dashboardData(), funnelCounts()]);
+  const [data, funnel, outcomes] = await Promise.all([dashboardData(), funnelCounts(), outcomeCounts()]);
   const counts = data.counts;
   const sales = data.sales;
   const instagram = data.integrations.find((item) => item.provider === "instagram");
   const telegram = data.integrations.find((item) => item.provider === "telegram");
-  const whatsapp = data.integrations.find((item) => item.provider === "whatsapp");
   const instagramConnected = instagram?.status === "connected";
   const telegramConnected = telegram?.status === "connected";
   const channelState = (status?: string) => status === "connected" ? "Bağlı" : status === "error" ? "Bağlantı hatası" : "Kurulum bekleniyor";
@@ -68,7 +68,11 @@ export default async function DashboardPage() {
             value={channelState(telegram?.status)}
             hint={telegramConnected ? `Kayıtlı konuşma: ${num(counts?.telegram_conversations)}` : "Bot yapılandırılmadı."}
           />
-          <Row label="WhatsApp" value={channelState(whatsapp?.status)} hint={whatsapp?.status === "connected" ? "İşletme hattı doğrulandı." : "Kişisel numara yayımlanmaz."} />
+          <Row label="Başvuru" value={String(outcomes.applications)} hint="Silinmemiş ve birleştirilmemiş web, Telegram ve elle açılan dosyalar" />
+          <Row label="Ön değerlendirme" value={String(outcomes.precheck)} hint="Değerlendirme kaydı olan dosyalar" />
+          <Row label="Görüşme aşaması" value={String(outcomes.interview)} hint="Yalnız pipeline_stage = interview" />
+          <Row label="Sözleşme" value={String(outcomes.contract)} hint="Vize onayı bu sayıya girmez" />
+          <Row label="İşe başladı" value={String(outcomes.started)} hint="Başvuru bu sayıya girmez" />
         </section>
         <section className="rounded-2xl border border-border bg-card px-4">
           <h2 className="pt-4 font-medium">Dönüşüm</h2>
@@ -83,7 +87,7 @@ export default async function DashboardPage() {
         <section className="rounded-2xl border border-border bg-card px-4">
           <h2 className="pt-4 font-medium">Otomasyon</h2>
           <Row label="Başarısız görev" value={String(data.failures.length)} hint="Kuyrukta failed durumundaki son kayıtlar" />
-          {data.automations.slice(0, 4).map((item) => (
+          {data.automations.filter((item) => item.kind !== "whatsapp_welcome").slice(0, 4).map((item) => (
             <Row key={item.kind} label={AUTOMATION_LABEL[item.kind] ?? item.kind} value={item.enabled ? "Açık tercih" : "Kapalı"} hint="Çalıştırıcı bu fazda bağlı değil." />
           ))}
         </section>

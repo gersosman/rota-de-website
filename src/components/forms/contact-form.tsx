@@ -78,7 +78,7 @@ export function ContactForm({
       <label className="grid gap-1.5 text-sm">
         {labels.preference}
         <select name="contactPreference" className="h-11 rounded-lg border border-input bg-card px-3" defaultValue="email">
-          {["email", "telegram", "instagram"].map((item) => (
+          {["telegram", "email", "phone"].map((item) => (
             <option key={item} value={item}>{labels.options[item]}</option>
           ))}
         </select>

@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n";
 
 const links = [
-  ["how", "/nasil-calisir"],
   ["germany", "/almanyada-soforluk"],
-  ["conditions", "/sartlar"],
-  ["services", "/hizmetler"],
+  ["how", "/nasil-calisir"],
   ["faq", "/sss"],
-  ["contact", "/iletisim"],
+  ["apply", "/on-degerlendirme"],
 ] as const;
 
 export function SiteHeader({

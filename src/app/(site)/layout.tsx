@@ -1,3 +1,4 @@
+import { Assistant } from "@/components/site/assistant";
 import { ConnectionNotice } from "@/components/site/connection-notice";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
@@ -16,14 +17,13 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         labels={{
           how: copy.nav.how,
           germany: copy.nav.germany,
-          conditions: copy.nav.conditions,
-          services: copy.nav.services,
           faq: copy.nav.faq,
-          contact: copy.nav.contact,
+          apply: copy.nav.apply,
         }}
       />
       <ConnectionNotice slow={copy.phase3.slow} offline={copy.phase3.offline} />
       <div className="flex-1">{children}</div>
+      <Assistant copy={copy.assistant} />
       <SiteFooter
         note={copy.footer.note}
         legal={copy.footer.legal}

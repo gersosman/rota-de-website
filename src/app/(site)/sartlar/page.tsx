@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { activeLegislation } from "@/server/knowledge";
 
@@ -27,6 +28,7 @@ export default async function ConditionsPage() {
       <section className="mt-10">
         <h2 className="font-serif text-2xl">{copy.conditions.collectedTitle}</h2>
         <p className="mt-2 text-sm leading-7">{copy.conditions.collected}</p>
+        <p className="mt-3 text-sm"><Link href="/almanyada-soforluk#src3" className="text-accent">{copy.conditions.src3Link}</Link></p>
       </section>
       <section className="mt-8">
         <h2 className="font-serif text-2xl">{copy.conditions.notTitle}</h2>

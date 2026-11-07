@@ -10,6 +10,7 @@ export const instant = false;
 const errors: Record<string, string> = {
   rate: "Çok fazla deneme.",
   anahtar: "Kurulum anahtarı geçersiz veya üretim ortamında tanımlı değil.",
+  origin: "İstek bu siteden gelmiyor. Sayfayı yenileyip yeniden deneyin.",
   form: "Ad, e-posta ve parolayı kontrol edin. Parola en az 12 karakter, harf ve rakam içermelidir.",
   weak: "Parola en az 12 karakter olmalı ve harf ile rakam içermelidir.",
   exists: "Yönetici zaten var.",

@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   cacheComponents: true,
   partialPrefetching: true,
-  serverExternalPackages: ["@electric-sql/pglite"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  outputFileTracingIncludes: {
+    "*": ["./migrations/**/*"],
+  },
   turbopack: {
     rules: {
       "*.css": {

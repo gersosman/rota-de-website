@@ -2,13 +2,17 @@ import "server-only";
 
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { PGlite } from "@electric-sql/pglite";
 import { connection } from "next/server";
 import pg from "pg";
 
+type LocalDb = {
+  exec: (query: string) => Promise<unknown>;
+  query: <T>(query: string, params?: unknown[]) => Promise<{ rows: T[] }>;
+};
+
 const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
 let pool: pg.Pool | undefined;
-let local: Promise<PGlite> | undefined;
+let local: Promise<LocalDb> | undefined;
 let localChain: Promise<unknown> = Promise.resolve();
 
 export type QueryFn = <T = Record<string, unknown>>(
@@ -31,7 +35,7 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 
 let appliedNames: Set<string> | null = null;
 
-export async function applyPendingMigrations(db: PGlite) {
+export async function applyPendingMigrations(db: LocalDb) {
   const directory = path.join(process.cwd(), "migrations");
   const files = (await readdir(directory).catch(() => [])).filter((file) => file.endsWith(".sql")).sort();
   if (appliedNames && files.every((file) => appliedNames?.has(file))) return;
@@ -58,7 +62,8 @@ export async function applyPendingMigrations(db: PGlite) {
   appliedNames = applied;
 }
 
-async function startLocal(): Promise<PGlite> {
+async function startLocal(): Promise<LocalDb> {
+  const { PGlite } = await import("@electric-sql/pglite");
   const persist = process.env.NEXT_PHASE !== "phase-production-build";
   const directory = path.join(process.cwd(), "data", "pglite");
   if (persist) await mkdir(directory, { recursive: true });
@@ -67,7 +72,7 @@ async function startLocal(): Promise<PGlite> {
   return db;
 }
 
-function getLocal(): Promise<PGlite> {
+function getLocal(): Promise<LocalDb> {
   local ??= startLocal().catch((error: unknown) => {
     local = undefined;
     throw error;
@@ -80,12 +85,54 @@ function getPool(): pg.Pool {
   return pool;
 }
 
+let postgresReady: Promise<void> | undefined;
+
+async function ensurePostgresSchema() {
+  postgresReady ??= migratePostgres().catch((error: unknown) => {
+    postgresReady = undefined;
+    throw error;
+  });
+  return postgresReady;
+}
+
+async function migratePostgres() {
+  const client = await getPool().connect();
+  try {
+    await client.query("select pg_advisory_lock(7272741)");
+    await client.query(
+      "create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())",
+    );
+    const directory = path.join(process.cwd(), "migrations");
+    const files = (await readdir(directory).catch(() => [])).filter((file) => file.endsWith(".sql")).sort();
+    const done = new Set(
+      (await client.query<{ name: string }>("select name from schema_migrations")).rows.map((row) => row.name),
+    );
+    for (const file of files) {
+      if (done.has(file)) continue;
+      const sqlText = await readFile(path.join(directory, file), "utf8");
+      await client.query("begin");
+      try {
+        await client.query(sqlText);
+        await client.query("insert into schema_migrations (name) values ($1)", [file]);
+        await client.query("commit");
+      } catch (error) {
+        await client.query("rollback");
+        throw error;
+      }
+    }
+  } finally {
+    await client.query("select pg_advisory_unlock(7272741)").catch(() => undefined);
+    client.release();
+  }
+}
+
 export async function sql<T = Record<string, unknown>>(
   text: string,
   params: unknown[] = [],
 ): Promise<T[]> {
   await connection();
   if (databaseUrl !== "") {
+    await ensurePostgresSchema();
     const result = await getPool().query(text, params);
     return result.rows as T[];
   }
@@ -100,6 +147,7 @@ export async function sql<T = Record<string, unknown>>(
 export async function withTransaction<T>(fn: (query: QueryFn) => Promise<T>): Promise<T> {
   await connection();
   if (databaseUrl !== "") {
+    await ensurePostgresSchema();
     const client = await getPool().connect();
     const query: QueryFn = async <T,>(text: string, params: unknown[] = []) => {
       const result = await client.query(text, params);

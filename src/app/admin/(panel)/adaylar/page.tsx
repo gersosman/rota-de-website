@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createManualLeadAction } from "@/server/actions/crm";
 import { LEAD_STATUSES, SCENARIO_HINTS, SCENARIO_LABEL, STATUS_LABEL } from "@/lib/domain/labels";
+import { TRACKER_LABEL, TRACKER_STAGES } from "@/lib/domain/tracker";
 import { formatDateTime } from "@/lib/format";
 import { listLeads } from "@/server/leads";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
   const family = one(params.family);
   const source = one(params.source);
   const waiting = one(params.waiting);
+  const tracker = one(params.tracker);
   const leads = await listLeads({
     q: q || undefined,
     status: status || undefined,
@@ -34,11 +36,17 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
     family: family || undefined,
     source: source || undefined,
     waiting: waiting || undefined,
+    tracker: tracker || undefined,
   });
   return (
     <main className="mx-auto max-w-6xl">
       <h1 className="font-serif text-4xl">Adaylar</h1>
       <p className="mt-2 text-sm text-muted-foreground">{leads.length} kayıt listeleniyor. Silinmiş kayıtlar görünmez.</p>
+      <div className="mt-4 flex gap-2 overflow-x-auto text-sm">
+        {[["", "Tümü"], ["received", "Yeni"], ["reviewing", "İncelenen"], ["started", "Süreç başladı"], ["completed", "Tamamlanan"], ["closed", "Kapatılan"]].map(([value, label]) => (
+          <Link key={label} href={value ? `/admin/adaylar?tracker=${value}` : "/admin/adaylar"} className={`rounded-full border px-3 py-1 whitespace-nowrap ${tracker === value ? "border-accent text-accent" : "border-border"}`}>{label}</Link>
+        ))}
+      </div>
       <form className="mt-6 grid gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-4" action="/admin/adaylar">
         <Input name="q" defaultValue={q} placeholder="Ad, e-posta veya dosya no" className="h-10" />
         <select name="status" defaultValue={status} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
@@ -128,7 +136,10 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
                     <p>{lead.fullName}</p>
                     <p className="text-xs text-muted-foreground">{lead.email || "E-posta yok"}</p>
                   </td>
-                  <td className="px-3 py-3"><Badge variant="secondary">{STATUS_LABEL[lead.status]}</Badge></td>
+                  <td className="px-3 py-3">
+                    <Badge variant="secondary">{TRACKER_STAGES.includes(lead.trackerStage as typeof TRACKER_STAGES[number]) ? TRACKER_LABEL[lead.trackerStage as typeof TRACKER_STAGES[number]] : lead.trackerStage}</Badge>
+                    <p className="mt-1 text-xs text-muted-foreground">{STATUS_LABEL[lead.status]}</p>
+                  </td>
                   <td className="hidden px-3 py-3 md:table-cell">{lead.scenarioHint ? SCENARIO_LABEL[lead.scenarioHint] : "—"}</td>
                   <td className="hidden px-3 py-3 lg:table-cell">{formatDateTime(lead.createdAt)}</td>
                 </tr>

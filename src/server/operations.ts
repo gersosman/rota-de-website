@@ -1,6 +1,8 @@
 import "server-only";
 
 import { audit, auditWith } from "@/server/audit";
+import { allocatePublicCode } from "@/server/leads";
+import { attachReceived } from "@/server/tracker";
 import { sql, withTransaction } from "@/server/db";
 import { isPipelineStage, type PipelineStage } from "@/lib/domain/pipeline";
 import { isUuid } from "@/lib/format";
@@ -103,25 +105,20 @@ export async function updateContactMessage(actorId: string, id: string, status: 
   return true;
 }
 
-export async function createSupportRequest(input: { fullName: string; message: string; email?: string }) {
+export async function createSupportRequest(input: { fullName: string; message: string; email?: string; phone?: string }) {
   const fullName = input.fullName.trim().slice(0, 120);
   const message = input.message.trim().slice(0, 2000);
-  const email = input.email?.trim().toLowerCase().slice(0, 180) || "belirtilmedi";
+  const email = input.email?.trim().toLowerCase().slice(0, 180) || "";
+  const phone = input.phone?.trim().slice(0, 20) || "";
   if (fullName.length < 3 || message.length < 5) return { ok: false as const };
+  const preference = email ? "email" : phone ? "phone" : "unspecified";
   return withTransaction(async (query) => {
-    const year = new Date().getUTCFullYear();
-    const counters = await query<{ last_value: number }>(
-      `insert into lead_counters (year, last_value) values ($1, 1)
-       on conflict (year) do update set last_value = lead_counters.last_value + 1
-       returning last_value`,
-      [year],
-    );
-    const publicCode = `RD-${year}-${String(Number(counters[0]?.last_value ?? 1)).padStart(5, "0")}`;
+    const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
-      `insert into leads (public_code, full_name, email, contact_preference, source, status, notes)
-       values ($1, $2, $3, 'telegram', 'website_contact', 'CONSULTATION_PENDING', $4)
+      `insert into leads (public_code, full_name, email, phone, contact_preference, source, status, notes)
+       values ($1, $2, $3, $4, $5, 'website_contact', 'CONSULTATION_PENDING', $6)
        returning id`,
-      [publicCode, fullName, email === "belirtilmedi" ? null : email, "İnsan desteği talebi. Model bağlı değil."],
+      [publicCode, fullName, email || null, phone || null, preference, "İnsan desteği talebi."],
     );
     const leadId = leads[0]?.id;
     if (!leadId) throw new Error("lead_insert_failed");
@@ -131,9 +128,14 @@ export async function createSupportRequest(input: { fullName: string; message: s
     );
     await query(
       `insert into contact_messages (lead_id, full_name, email, message, contact_preference, status)
-       values ($1, $2, $3, $4, 'telegram', 'new')`,
-      [leadId, fullName, email, message],
+       values ($1, $2, $3, $4, $5, 'new')`,
+      [leadId, fullName, email || "belirtilmedi", message, preference],
     );
+    await attachReceived(query, leadId, {
+      title: "Destek talebi",
+      body: `${publicCode} · site asistanı`,
+      href: `/admin/adaylar/${leadId}`,
+    });
     await auditWith(query, { action: "support.requested", entityType: "lead", entityId: leadId, metadata: { human: true } });
     return { ok: true as const, publicCode };
   });

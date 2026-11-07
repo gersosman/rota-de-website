@@ -27,15 +27,14 @@ export default async function HomePage() {
               <Link href="/on-degerlendirme" className="inline-flex h-12 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground">
                 {text.primary}
               </Link>
+              <Link href="/iletisim" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
+                {text.contactCta}
+              </Link>
               {bot ? (
-                <TrackAnchor href={bot} event="telegram_click" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
+                <TrackAnchor href={bot} event="telegram_click" className="inline-flex h-12 items-center justify-center text-sm text-white/70">
                   {text.telegramCta}
                 </TrackAnchor>
-              ) : (
-                <Link href="/iletisim" className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 px-5 text-sm">
-                  {text.telegramPending}
-                </Link>
-              )}
+              ) : null}
             </div>
           </div>
           <div className="relative h-80 overflow-hidden rounded-[2rem] lg:h-[32rem]">

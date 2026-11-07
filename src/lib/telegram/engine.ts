@@ -2,7 +2,7 @@ export type BotButton = { label: string; data: string };
 
 export type BotReply = { text: string; buttons: BotButton[][] };
 
-export type BotStep = "idle" | "country" | "ce" | "experience" | "german" | "name" | "confirm";
+export type BotStep = "idle" | "country" | "ce" | "experience" | "german" | "name" | "confirm" | "verify";
 
 export type PrecheckDraft = {
   country?: "TR" | "DE" | "OTHER";
@@ -10,13 +10,14 @@ export type PrecheckDraft = {
   experience?: "none" | "y1_3" | "y5_plus";
   german?: "none" | "A1" | "B1";
   name?: string;
+  pendingCode?: string;
 };
 
 export type BotEffect =
   | { type: "none" }
   | { type: "handoff" }
   | { type: "lead"; draft: PrecheckDraft }
-  | { type: "track"; code: string };
+  | { type: "track"; code: string; verifier: string };
 
 export type TurnInput = {
   text: string;
@@ -78,7 +79,7 @@ export function labelForCallback(data: string): string {
   return CALLBACK_LABELS[data] ?? data;
 }
 
-const STEPS = new Set<BotStep>(["idle", "country", "ce", "experience", "german", "name", "confirm"]);
+const STEPS = new Set<BotStep>(["idle", "country", "ce", "experience", "german", "name", "confirm", "verify"]);
 
 function reply(text: string, buttons: BotButton[][] = MENU): BotReply {
   return { text: text.slice(0, 900), buttons };
@@ -171,6 +172,9 @@ export function normalizeDraft(value: unknown): PrecheckDraft {
   if (typeof row.name === "string" && row.name.trim().length >= 2 && row.name.trim().length <= 80) {
     draft.name = row.name.trim();
   }
+  if (typeof row.pendingCode === "string" && /^(ROTA-\d{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}|RD-\d{4}-\d{5})$/.test(row.pendingCode)) {
+    draft.pendingCode = row.pendingCode;
+  }
   return draft;
 }
 
@@ -257,7 +261,7 @@ export function takeTurn(input: TurnInput): TurnResult {
     );
   }
   if (action === "track") {
-    return idle("Dosya numaranı yaz. Bu sohbet yalnız kendine bağlı dosyanın durumunu söyler.", "track", true);
+    return idle("Başvuru kodunu yaz. Ardından başvuruda kullandığın e-posta veya telefon istenir. Başkasının dosyası gösterilmez.", "track", true);
   }
   if (action === "services") return servicesReply(input.services);
   if (action === "faq") return faqReply(input.faqs);
@@ -373,6 +377,30 @@ export function takeTurn(input: TurnInput): TurnResult {
     };
   }
 
+  if (step === "verify") {
+    const pending = draft.pendingCode;
+    if (!pending || callback === "menu" || command === "menu" || command === "start") {
+      return idle("Takip iptal edildi. Menüden yeniden seçebilirsin.", "track", true);
+    }
+    const verifier = input.text.trim();
+    if (verifier.length < 5) {
+      return {
+        replies: [reply("E-posta veya telefon eksik. Başvuruda yazdığın bilgiyi gönder.", [[{ label: "Menü", data: "menu" }]])],
+        step: "verify",
+        draft,
+        effect: { type: "none" },
+        category: "track",
+      };
+    }
+    return {
+      replies: [reply("Kontrol ediliyor.")],
+      step: "idle",
+      draft: {},
+      effect: { type: "track", code: pending, verifier },
+      category: "track",
+    };
+  }
+
   if (step !== "idle") {
     return {
       replies: [reply("Düğmeyi kullanın.")],
@@ -384,12 +412,12 @@ export function takeTurn(input: TurnInput): TurnResult {
   }
 
   const code = input.text.trim().toUpperCase();
-  if (/^RD-\d{4}-\d{5}$/.test(code)) {
+  if (/^(ROTA-\d{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}|RD-\d{4}-\d{5})$/.test(code)) {
     return {
-      replies: [reply("Dosya kontrolü bu sohbetle sınırlıdır.")],
-      step: "idle",
-      draft: {},
-      effect: { type: "track", code },
+      replies: [reply("Başvuru kodu alındı. Şimdi başvuruda yazdığın e-posta adresini veya telefon numarasını yaz. Yalnızca eşleşirse durum gösterilir.", [[{ label: "Menü", data: "menu" }]])],
+      step: "verify",
+      draft: { pendingCode: code },
+      effect: { type: "none" },
       category: "track",
     };
   }

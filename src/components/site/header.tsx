@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { MobileNav } from "@/components/site/mobile-nav";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n";
 
@@ -9,16 +10,21 @@ const links = [
   ["how", "/nasil-calisir"],
   ["faq", "/sss"],
   ["apply", "/on-degerlendirme"],
+  ["track", "/basvuru-takip"],
 ] as const;
 
 export function SiteHeader({
   locale,
   labels,
   cta,
+  themeToDark,
+  themeToLight,
 }: {
   locale: Locale;
   labels: Record<(typeof links)[number][0], string>;
   cta: string;
+  themeToDark: string;
+  themeToLight: string;
 }) {
   const items = links.map(([key, href]) => ({ href, label: labels[key] }));
   return (
@@ -37,6 +43,7 @@ export function SiteHeader({
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle toDark={themeToDark} toLight={themeToLight} />
           <LocaleSwitch locale={locale} />
           <Button nativeButton={false} variant="accent" className="hidden h-10 px-4 sm:inline-flex" render={<Link href="/on-degerlendirme" />}>
             {cta}

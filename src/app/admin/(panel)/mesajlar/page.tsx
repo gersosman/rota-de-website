@@ -46,6 +46,7 @@ export default async function MessagesPage(props: { searchParams: Promise<Record
             <li key={item.id}>
               <a href={`/admin/mesajlar?chat=${encodeURIComponent(item.external_thread_id ?? "")}`} className={`block rounded-2xl border p-3 text-sm ${active?.id === item.id ? "border-accent" : "border-border bg-card"}`}>
                 <p className="font-medium">Telegram · {item.public_code ?? "Dosya yok"}</p>
+                <p className="text-xs text-muted-foreground">Sohbet: {item.external_thread_id}</p>
                 <p className="text-xs text-muted-foreground">{item.status === "waiting_human" ? "İnsan bekliyor" : "Açık"} · {formatDateTime(item.updated_at)}</p>
               </a>
             </li>

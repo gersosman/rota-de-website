@@ -14,19 +14,20 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <SiteHeader
         locale={locale}
         cta={copy.nav.assessment}
+        themeToDark={copy.nav.themeToDark}
+        themeToLight={copy.nav.themeToLight}
         labels={{
           how: copy.nav.how,
           germany: copy.nav.germany,
           faq: copy.nav.faq,
           apply: copy.nav.apply,
+          track: copy.nav.track,
         }}
       />
       <ConnectionNotice slow={copy.phase3.slow} offline={copy.phase3.offline} />
       <div className="flex-1">{children}</div>
       <Assistant copy={copy.assistant} />
       <SiteFooter
-        note={copy.footer.note}
-        legal={copy.footer.legal}
         rights={copy.footer.rights}
         labels={{
           impressum: copy.legal.impressum,

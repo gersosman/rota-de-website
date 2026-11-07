@@ -2,8 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addNoteAction, anonymizeLeadAction, changeStatusAction, followUpAction, mergeLeadAction } from "@/server/actions/crm";
 import { pipelineAction } from "@/server/actions/operations";
+import { trackerStageAction } from "@/server/actions/tracker";
 import { LEAD_STATUSES, SCENARIO_LABEL, STATUS_LABEL } from "@/lib/domain/labels";
 import { PIPELINE_LABEL, PIPELINE_STAGES } from "@/lib/domain/pipeline";
+import { TRACKER_DEFAULT, TRACKER_LABEL, TRACKER_STAGES } from "@/lib/domain/tracker";
+import { requirePanel } from "@/server/auth";
+import { openForReview } from "@/server/tracker";
 import { formatDateTime, formatMoney, jsonObject, num } from "@/lib/format";
 import { getLead, phoneSuggestions } from "@/server/leads";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +19,8 @@ export const instant = false;
 
 export default async function LeadPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
+  const admin = await requirePanel();
+  await openForReview(admin.profileId, id);
   const lead = await getLead(id);
   if (!lead) notFound();
   const suggestions = await phoneSuggestions(lead.id, lead.phone);
@@ -87,6 +93,16 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
           </form>
         </section>
         <section className="space-y-4">
+          <form action={trackerStageAction} className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="font-medium">Adayın gördüğü durum</h2>
+            <p className="mt-1 text-xs text-muted-foreground">İlk açılışta “Başvuru Alındı” otomatik olarak “İnceleniyor” olur. İç notlar bu ekranda kalır.</p>
+            <input type="hidden" name="leadId" value={lead.id} />
+            <select name="stage" defaultValue={lead.trackerStage} className="mt-3 h-10 w-full rounded-lg border border-input bg-card px-2 text-sm">
+              {TRACKER_STAGES.map((stage) => <option key={stage} value={stage}>{TRACKER_LABEL[stage]}</option>)}
+            </select>
+            <Input name="publicMessage" placeholder="Adayın göreceği açıklama" defaultValue={TRACKER_STAGES.includes(lead.trackerStage as typeof TRACKER_STAGES[number]) ? TRACKER_DEFAULT[lead.trackerStage as typeof TRACKER_STAGES[number]] : ""} className="mt-2 h-10" />
+            <Button type="submit" className="mt-3 h-10">Takip durumunu kaydet</Button>
+          </form>
           <form action={pipelineAction} className="rounded-2xl border border-border bg-card p-4">
             <h2 className="font-medium">Süreç aşaması</h2>
             <input type="hidden" name="leadId" value={lead.id} />
@@ -136,7 +152,8 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
       </section>
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="font-medium">Notlar</h2>
+          <h2 className="font-medium">İç notlar</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Bu notlar adayın takip ekranında görünmez.</p>
           <form action={addNoteAction} className="mt-3 grid gap-2">
             <input type="hidden" name="leadId" value={lead.id} />
             <Textarea name="body" required minLength={2} placeholder="İç not" />
@@ -159,7 +176,22 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
           </ul>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <h2 className="font-medium">Durum geçmişi</h2>
+          <h2 className="font-medium">Adayın gördüğü geçmiş</h2>
+          <ol className="mt-3 space-y-3">
+            {lead.trackerEvents.map((event) => {
+              const row = event as { id: string; from_stage: string | null; to_stage: string; public_message: string; created_at: string; actor: string | null };
+              const from = row.from_stage && TRACKER_STAGES.includes(row.from_stage as typeof TRACKER_STAGES[number]) ? TRACKER_LABEL[row.from_stage as typeof TRACKER_STAGES[number]] : row.from_stage;
+              const to = TRACKER_STAGES.includes(row.to_stage as typeof TRACKER_STAGES[number]) ? TRACKER_LABEL[row.to_stage as typeof TRACKER_STAGES[number]] : row.to_stage;
+              return (
+                <li key={row.id} className="text-sm">
+                  <p>{from ? `${from} → ` : ""}{to}</p>
+                  <p className="text-muted-foreground">{row.public_message}</p>
+                  <p className="text-xs text-muted-foreground">{row.actor || "Sistem"} · {formatDateTime(row.created_at)}</p>
+                </li>
+              );
+            })}
+          </ol>
+          <h2 className="mt-6 font-medium">Durum geçmişi</h2>
           <ol className="mt-3 space-y-3">
             {lead.events.map((event) => {
               const row = event as { id: string; from_status: string | null; to_status: string; note: string | null; created_at: string };

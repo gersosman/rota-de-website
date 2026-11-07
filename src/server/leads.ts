@@ -4,7 +4,10 @@ import { audit, auditWith } from "@/server/audit";
 import { sql, withTransaction, type QueryFn } from "@/server/db";
 import { classifyAssessment } from "@/lib/domain/classify";
 import type { LeadStatus, ScenarioHint } from "@/lib/domain/labels";
+import { isTrackerStage } from "@/lib/domain/tracker";
 import { escapeLike, isUuid, jsonArray, num } from "@/lib/format";
+import { createPublicCode, isApplicationCode } from "@/lib/public-code";
+import { attachReceived } from "@/server/tracker";
 import type { AssessmentInput, ContactInput, JourneyInput } from "@/lib/validation/assessment";
 
 const CONSENT_VERSION = "onay-2026-11";
@@ -25,6 +28,7 @@ export type LeadListItem = {
   followUpOn: string | null;
   createdAt: string;
   lastContactAt: string | null;
+  trackerStage: string;
 };
 
 type LeadRow = {
@@ -55,6 +59,8 @@ type LeadRow = {
   city: string | null;
   marketing_opt_in: boolean;
   pipeline_stage: string;
+  tracker_stage: string;
+  availability: string | null;
   scenario_hint: ScenarioHint | null;
   notes: string | null;
   last_contact_at: string | null;
@@ -81,19 +87,18 @@ function mapList(row: LeadRow): LeadListItem {
     followUpOn: row.follow_up_on,
     createdAt: row.created_at,
     lastContactAt: row.last_contact_at,
+    trackerStage: row.tracker_stage,
   };
 }
 
-async function nextPublicCode(query: QueryFn): Promise<string> {
+export async function allocatePublicCode(query: QueryFn): Promise<string> {
   const year = new Date().getUTCFullYear();
-  const rows = await query<{ last_value: number }>(
-    `insert into lead_counters (year, last_value) values ($1, 1)
-     on conflict (year) do update set last_value = lead_counters.last_value + 1
-     returning last_value`,
-    [year],
-  );
-  const value = num(rows[0]?.last_value);
-  return `RD-${year}-${String(value).padStart(5, "0")}`;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = createPublicCode(year);
+    const taken = await query<{ id: string }>("select id from leads where public_code = $1", [code]);
+    if (taken.length === 0) return code;
+  }
+  throw new Error("code_allocation_failed");
 }
 
 export async function findSubmission(idempotencyKey: string) {
@@ -130,7 +135,7 @@ export async function createAssessmentLead(input: AssessmentInput) {
     const version = await query<{ id: string }>(
       "select id from legislation_versions where is_active = true limit 1",
     );
-    const publicCode = await nextPublicCode(query);
+    const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
       `insert into leads (
          public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
@@ -201,6 +206,11 @@ export async function createAssessmentLead(input: AssessmentInput) {
       "insert into intake_submissions (idempotency_key, lead_id, public_code) values ($1, $2, $3)",
       [input.idempotencyKey, leadId, publicCode],
     );
+    await attachReceived(query, leadId, {
+      title: "Yeni başvuru",
+      body: `${publicCode} · web ön değerlendirme`,
+      href: `/admin/adaylar/${leadId}`,
+    });
     await auditWith(query, {
       action: "lead.assessment_created",
       entityType: "lead",
@@ -225,7 +235,7 @@ export async function createTelegramLead(input: {
   followUpOn: string | null;
 }) {
   return withTransaction(async (query) => {
-    const publicCode = await nextPublicCode(query);
+    const publicCode = await allocatePublicCode(query);
     const licence = input.ce === "yes" ? ["CE"] : [];
     const leads = await query<{ id: string }>(
       `insert into leads (
@@ -262,6 +272,11 @@ export async function createTelegramLead(input: {
       `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'telegram_chat', $2, true)`,
       [leadId, CONSENT_VERSION],
     );
+    await attachReceived(query, leadId, {
+      title: "Yeni başvuru",
+      body: `${publicCode} · Telegram`,
+      href: `/admin/adaylar/${leadId}`,
+    });
     await auditWith(query, {
       action: "lead.telegram_created",
       entityType: "lead",
@@ -284,19 +299,19 @@ export async function createJourneyLead(input: JourneyInput) {
   });
   return withTransaction(async (query) => {
     const version = await query<{ id: string }>("select id from legislation_versions where is_active = true limit 1");
-    const publicCode = await nextPublicCode(query);
+    const publicCode = await allocatePublicCode(query);
     const email = input.email?.trim() ? input.email.trim().toLowerCase() : null;
     const leads = await query<{ id: string }>(
       `insert into leads (
-         public_code, full_name, email, contact_preference, phone, city, licence_classes,
+         public_code, full_name, email, contact_preference, phone, city, country, availability, licence_classes,
          experience_range, eu_eea_licence, code95_status, german_level, intent, age_range,
          ce_intent, src3_status, family_status, spouse_german, children_ages, marketing_opt_in,
          source, status, scenario_hint, notes
        ) values (
-         $1,$2,$3,$4,$5,$6,$7::jsonb,
-         $8,'unknown','unknown',$9,'unsure','undisclosed',
-         $10,$11,$12,$13,$14,$15,
-         'website_assessment',$16,$17,$18
+         $1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,
+         $10,'unknown','unknown',$11,'unsure','undisclosed',
+         $12,$13,$14,$15,$16,$17,
+         'website_assessment',$18,$19,$20
        ) returning id`,
       [
         publicCode,
@@ -305,6 +320,8 @@ export async function createJourneyLead(input: JourneyInput) {
         input.contactPreference,
         input.phone,
         input.city,
+        input.residence,
+        input.availability,
         JSON.stringify(input.ce === "have" ? ["CE"] : []),
         input.experience,
         german,
@@ -352,6 +369,11 @@ export async function createJourneyLead(input: JourneyInput) {
       leadId,
       publicCode,
     ]);
+    await attachReceived(query, leadId, {
+      title: "Yeni başvuru",
+      body: `${publicCode} · ücretsiz ön değerlendirme`,
+      href: `/admin/adaylar/${leadId}`,
+    });
     await auditWith(query, {
       action: "lead.journey_created",
       entityType: "lead",
@@ -363,7 +385,7 @@ export async function createJourneyLead(input: JourneyInput) {
 }
 
 export async function leadStatusByCode(code: string) {
-  if (!/^RD-\d{4}-\d{5}$/.test(code)) return null;
+  if (!isApplicationCode(code)) return null;
   const rows = await sql<{ status: LeadStatus }>(
     "select status from leads where public_code = $1 and deleted_at is null and merged_into is null",
     [code],
@@ -384,11 +406,12 @@ export async function phoneSuggestions(leadId: string, phone: string | null) {
 }
 
 export async function mergeLeads(actorId: string, sourceId: string, targetCode: string) {
-  if (!isUuid(sourceId) || !/^RD-\d{4}-\d{5}$/.test(targetCode)) return { ok: false as const, detail: "Dosya bulunamadı." };
+  const code = targetCode.trim().toUpperCase();
+  if (!isUuid(sourceId) || !isApplicationCode(code)) return { ok: false as const, detail: "Dosya bulunamadı." };
   return withTransaction(async (query) => {
     const target = await query<{ id: string }>(
       "select id from leads where public_code = $1 and deleted_at is null and merged_into is null",
-      [targetCode],
+      [code],
     );
     const targetId = target[0]?.id;
     if (!targetId || targetId === sourceId) return { ok: false as const, detail: "Dosya bulunamadı." };
@@ -416,7 +439,7 @@ export async function createContactLead(input: ContactInput) {
   if (existing) return { publicCode: existing, duplicate: true as const };
 
   return withTransaction(async (query) => {
-    const publicCode = await nextPublicCode(query);
+    const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
       `insert into leads (public_code, full_name, email, contact_preference, phone, source, status)
        values ($1, $2, $3, $4, $5, 'website_contact', 'NEW')
@@ -450,6 +473,11 @@ export async function createContactLead(input: ContactInput) {
       "insert into intake_submissions (idempotency_key, lead_id, public_code) values ($1, $2, $3)",
       [input.idempotencyKey, leadId, publicCode],
     );
+    await attachReceived(query, leadId, {
+      title: "Yeni iletişim talebi",
+      body: `${publicCode} · iletişim formu`,
+      href: "/admin/iletisim",
+    });
     await auditWith(query, { action: "lead.contact_created", entityType: "lead", entityId: leadId });
     return { publicCode, duplicate: false as const };
   });
@@ -464,7 +492,7 @@ export async function createManualLead(input: {
   notes?: string;
 }) {
   return withTransaction(async (query) => {
-    const publicCode = await nextPublicCode(query);
+    const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
       `insert into leads (public_code, full_name, email, contact_preference, country, notes, source, status)
        values ($1, $2, $3, $4, $5, $6, 'manual', 'NEW')
@@ -484,6 +512,11 @@ export async function createManualLead(input: {
       `insert into lead_status_events (lead_id, to_status, actor_id, note) values ($1, 'NEW', $2, 'Elle kayıt')`,
       [leadId, input.actorId],
     );
+    await attachReceived(query, leadId, {
+      title: "Yeni başvuru",
+      body: `${publicCode} · elle kayıt`,
+      href: `/admin/adaylar/${leadId}`,
+    });
     await auditWith(query, {
       actorId: input.actorId,
       action: "lead.manual_created",
@@ -504,6 +537,7 @@ export async function listLeads(filters: {
   family?: string;
   source?: string;
   waiting?: string;
+  tracker?: string;
 }) {
   const params: unknown[] = [];
   const where = ["deleted_at is null"];
@@ -537,6 +571,10 @@ export async function listLeads(filters: {
     where.push(`exists (select 1 from conversations c where c.lead_id = leads.id and c.status = 'waiting_human')`);
   }
   if (filters.waiting === "consultation") where.push(`status = 'CONSULTATION_PENDING'`);
+  if (filters.tracker && isTrackerStage(filters.tracker)) {
+    params.push(filters.tracker);
+    where.push(`tracker_stage = $${params.length}`);
+  }
   if (filters.q) {
     params.push(`%${escapeLike(filters.q)}%`);
     where.push(
@@ -548,7 +586,7 @@ export async function listLeads(filters: {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads
      where ${where.join(" and ")}
@@ -565,14 +603,14 @@ export async function getLead(id: string) {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads where id = $1`,
     [id],
   );
   const lead = leads[0];
   if (!lead || lead.deleted_at) return null;
-  const [events, notes, assessments, conversations, orders, payments, appointments] = await Promise.all([
+  const [events, notes, assessments, conversations, orders, payments, appointments, trackerEvents] = await Promise.all([
     sql(
       `select id, from_status, to_status, note, created_at from lead_status_events
        where lead_id = $1 order by created_at`,
@@ -603,6 +641,14 @@ export async function getLead(id: string) {
     ),
     sql(
       `select id, starts_at, ends_at, status from appointments where lead_id = $1 order by starts_at`,
+      [id],
+    ),
+    sql(
+      `select e.id, e.from_stage, e.to_stage, e.public_message, e.created_at, p.display_name as actor
+       from tracker_events e
+       left join profiles p on p.id = e.actor_id
+       where e.lead_id = $1
+       order by e.created_at`,
       [id],
     ),
   ]);
@@ -636,6 +682,8 @@ export async function getLead(id: string) {
     childrenAges: lead.children_ages,
     marketingOptIn: Boolean(lead.marketing_opt_in),
     pipelineStage: lead.pipeline_stage,
+    availability: lead.availability,
+    trackerEvents,
     updatedAt: lead.updated_at,
     events,
     notesList: notes,

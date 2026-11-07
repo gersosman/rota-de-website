@@ -1,54 +1,47 @@
-import { JourneyForm } from "@/components/forms/journey-form";
+import { PrecheckWizard } from "@/components/forms/precheck-wizard";
 import { getDictionary } from "@/lib/i18n";
-import { publicBotLink } from "@/server/telegram/inbox";
 
 export const instant = false;
 
 function one(value: string | string[] | undefined) {
-  return typeof value === "string" ? value.slice(0, 80) : "";
+  return typeof value === "string" ? value.slice(0, 40) : "";
 }
 
 export default async function AssessmentPage(props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await props.searchParams;
   const copy = await getDictionary();
   const text = copy.phase3;
-  const telegram = await publicBotLink();
   return (
     <main>
-      <JourneyForm
-        telegramHref={telegram}
-        initial={{
-          ce: one(params.ce),
-          src3: one(params.src3),
-          german: one(params.german),
-          family: one(params.family),
-          spouseGerman: one(params.spouseGerman),
-          childrenAges: one(params.childrenAges),
-        }}
+      <PrecheckWizard
+        initial={{ ce: one(params.ce), src3: one(params.src3), german: one(params.german), family: one(params.family) }}
         copy={{
-          ...text.journey,
-          ceHave: text.ceHave,
-          cePlan: text.cePlan,
-          srcHave: text.srcHave,
-          srcPlan: text.srcPlan,
-          srcInfo: text.srcInfo,
-          deNone: text.deNone,
-          deStart: text.deStart,
-          deMid: text.deMid,
-          deGood: text.deGood,
-          familyAlone: text.familyAlone,
-          familySpouse: text.familySpouse,
-          familyKids: text.familyKids,
-          spouseQ: text.spouseQ,
-          childrenQ: text.childrenQ,
-          spouseYes: text.spouseYes,
-          spouseNo: text.spouseNo,
-          spouseLater: text.spouseLater,
-          childrenHint: text.childrenHint,
-          papers: text.papers,
-          telegramPending: text.telegramPending,
+          ...copy.precheck,
+          name: text.journey.name,
+          phone: text.journey.phone,
+          city: text.journey.city,
+          email: text.journey.email,
+          note: text.journey.note,
+          preference: text.journey.preference,
+          channelEmail: text.journey.channelEmail,
+          channelPhone: text.journey.channelPhone,
+          channelTelegram: text.journey.channelTelegram,
+          marketing: text.journey.marketingOpt,
           consent: copy.assessment.consent,
           ack: copy.assessment.ack,
+          countries: {
+            TR: copy.options.TR,
+            DE: copy.options.DE,
+            EU_EEA_OTHER: copy.options.EU_EEA_OTHER,
+            OTHER: copy.options.OTHER,
+          },
+          experience: {
+            none: text.journey.exNone,
+            under_1: text.journey.exUnder,
+            y1_3: text.journey.ex13,
+            y3_5: text.journey.ex35,
+            y5_plus: text.journey.ex5,
+          },
           errors: {
             invalid: copy.assessment.errorInvalid,
             rate: copy.assessment.errorRate,

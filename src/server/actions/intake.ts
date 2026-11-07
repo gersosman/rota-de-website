@@ -4,6 +4,7 @@ import { publicGate } from "@/server/actions/guards";
 import { createAssessmentLead, createContactLead, createJourneyLead, findSubmission, requestDeletion } from "@/server/leads";
 import { allowRate, hashValue } from "@/server/rate-limit";
 import { ceLabel, experienceLabel, src3Label } from "@/lib/domain/pipeline";
+import { sendApplicationCode } from "@/server/mail";
 import { notifyAdmin } from "@/server/telegram/notify";
 import { assessmentSchema, contactSchema, deletionSchema, journeySchema } from "@/lib/validation/assessment";
 
@@ -36,7 +37,9 @@ export async function submitJourney(input: unknown) {
   if (!(await allowRate(phoneBucket, 5, 60 * 60))) return { ok: false as const, code: "rate" as const };
   try {
     const result = await createJourneyLead(parsed.data);
+    let emailStatus: "sent" | "skipped" | "failed" | "no-email" = "no-email";
     if (!result.duplicate && result.publicCode) {
+      emailStatus = await sendApplicationCode(parsed.data.email?.trim() ? parsed.data.email.trim().toLowerCase() : null, result.publicCode);
       await notifyAdmin(
         [
           "ROTA DE — Yeni başvuru",
@@ -52,7 +55,7 @@ export async function submitJourney(input: unknown) {
         ].join("\n"),
       ).catch(() => "failed" as const);
     }
-    return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate };
+    return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate, emailStatus };
   } catch (error) {
     console.error("journey_failed", error instanceof Error ? error.name : "error");
     const recovered = await findSubmission(parsed.data.idempotencyKey).catch(() => null);

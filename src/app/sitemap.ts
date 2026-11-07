@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { publicOrigin } from "@/lib/site-origin";
 
-const PATHS = ["/", "/almanyada-soforluk", "/nasil-calisir", "/sss", "/on-degerlendirme", "/sartlar", "/iletisim", "/hizmetler", "/impressum", "/datenschutz", "/agb", "/iptal-iade"];
+const PATHS = ["/", "/almanyada-soforluk", "/nasil-calisir", "/sss", "/on-degerlendirme", "/basvuru-takip", "/sartlar", "/iletisim", "/hizmetler", "/impressum", "/datenschutz", "/agb", "/iptal-iade"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const origin = publicOrigin();

@@ -31,6 +31,7 @@ export default async function ContactPage() {
           email: copy.options.emailAddress,
           message: copy.contact.message,
           preference: copy.options.preference,
+          phone: copy.contact.phone,
           consent: copy.assessment.consent,
           submit: copy.contact.submit,
           done: copy.contact.done,

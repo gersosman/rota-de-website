@@ -7,6 +7,7 @@ export const experienceRanges = ["none", "under_1", "y1_3", "y3_5", "y5_plus"] a
 export const germanLevels = ["none", "A1", "A2", "B1", "B2", "C1_plus"] as const;
 export const intents = ["work_in_germany", "change_job", "both", "unsure"] as const;
 export const contactPreferences = ["email", "telegram", "instagram", "phone"] as const;
+export const availabilityWindows = ["now", "m1_3", "m3_6", "later"] as const;
 export const triStates = ["yes", "no", "unknown"] as const;
 
 const optionalHandle = z
@@ -69,6 +70,8 @@ export const journeySchema = z
     experience: z.enum(experienceRanges),
     german: z.enum(["none", "beginner", "mid", "good"]),
     family: z.enum(["alone", "spouse", "family"]),
+    residence: z.enum(residenceCountries).default("TR"),
+    availability: z.enum(availabilityWindows).default("later"),
     spouseGerman: z.enum(["yes", "no", "unknown"]).optional(),
     childrenAges: z.string().trim().max(80).optional(),
     fullName: z.string().trim().min(3).max(120),
@@ -91,14 +94,26 @@ export const journeySchema = z
 
 export type JourneyInput = z.infer<typeof journeySchema>;
 
-export const contactSchema = z.object({
-  fullName: z.string().trim().min(3).max(120),
-  email: z.email().max(180),
-  message: z.string().trim().min(10).max(4000),
-  contactPreference: z.enum(contactPreferences),
-  phone: optionalHandle,
-  consent: z.literal(true),
-  idempotencyKey: z.string().trim().min(8).max(80),
+export const contactSchema = z
+  .object({
+    fullName: z.string().trim().min(3).max(120),
+    email: z.email().max(180),
+    message: z.string().trim().min(10).max(4000),
+    contactPreference: z.enum(contactPreferences),
+    phone: optionalHandle,
+    consent: z.literal(true),
+    idempotencyKey: z.string().trim().min(8).max(80),
+    companyWebsite: z.string().max(200).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.contactPreference === "phone" && !value.phone) {
+      context.addIssue({ code: "custom", path: ["phone"], message: "required" });
+    }
+  });
+
+export const trackLookupSchema = z.object({
+  code: z.string().trim().min(8).max(40),
+  verifier: z.string().trim().min(5).max(180),
   companyWebsite: z.string().max(200).optional(),
 });
 

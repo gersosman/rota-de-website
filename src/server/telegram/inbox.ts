@@ -2,8 +2,8 @@ import "server-only";
 
 import { sql, withTransaction } from "@/server/db";
 import { audit } from "@/server/audit";
-import { STATUS_LABEL, type LeadStatus } from "@/lib/domain/labels";
 import { createTelegramLead } from "@/server/leads";
+import { linkTelegramTrack } from "@/server/tracker";
 import { notifyAdmin } from "@/server/telegram/notify";
 import { listFaqs, publishedServices } from "@/server/knowledge";
 import { allowRate, hashValue } from "@/server/rate-limit";
@@ -148,15 +148,10 @@ async function openLead(session: SessionRow, draft: PrecheckDraft, handle: strin
   return created.publicCode;
 }
 
-async function trackReply(leadId: string | null, userId: string | null, code: string) {
-  const rows = await sql<{ id: string; status: LeadStatus; telegram_user_id: string | null }>(
-    "select id, status, telegram_user_id from leads where public_code = $1 and deleted_at is null and merged_into is null",
-    [code],
-  );
-  const lead = rows[0];
-  const owns = Boolean(lead && (lead.id === leadId || (userId && lead.telegram_user_id === userId)));
-  if (!owns || !lead) return "Bu sohbet bu dosyaya bağlı değil.";
-  return `${code}: ${STATUS_LABEL[lead.status]}. Bu bir vize veya iş onayı değildir.`;
+async function trackReply(userId: string | null, code: string, verifier: string) {
+  const result = await linkTelegramTrack({ code, verifier, telegramUserId: userId });
+  if (!result.ok) return "Kod ve iletişim bilgisi eşleşmedi. Başkasının başvurusu gösterilmez.";
+  return `${result.label}\n${result.message}\nBu bir vize veya iş onayı değildir.`;
 }
 
 async function adminCommand(chatId: string | null, text: string) {
@@ -272,7 +267,7 @@ export async function runChatTurn(input: {
   if (turn.effect.type === "handoff") code = await openLead(session, { name: "Telegram adayı" }, input.handle, input.userId ?? null, true);
   let replies = turn.replies;
   if (turn.effect.type === "track") {
-    replies = [{ text: await trackReply(session.lead_id, input.userId ?? null, turn.effect.code), buttons: turn.replies[0]?.buttons ?? [] }];
+    replies = [{ text: await trackReply(input.userId ?? null, turn.effect.code, turn.effect.verifier), buttons: turn.replies[0]?.buttons ?? [] }];
   }
   replies = code ? [...replies, { text: `Dosya ${code}. Onay değildir.`, buttons: replies[0]?.buttons ?? [] }] : replies;
   await remember(input.chatKey, turn.step, turn.draft);

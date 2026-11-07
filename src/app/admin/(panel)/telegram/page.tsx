@@ -42,11 +42,29 @@ export default async function TelegramPage(props: { searchParams: Promise<Record
       </p>
       {notice ? <p className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm">{notice}</p> : null}
 
+      <section className="mt-6 rounded-2xl border border-border bg-card p-4 text-sm leading-6">
+        <h2 className="font-medium">Kurulum, adım adım</h2>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+          <li>Telefonunda Telegram’ı aç. BotFather’a yazacağın hesap, botun sahibi olacak hesap olsun.</li>
+          <li>Arama çubuğuna BotFather yaz ve mavi tikli resmi hesabı aç.</li>
+          <li>Sohbete /newbot yaz.</li>
+          <li>Botun görünen adını sorunca ROTA DE yaz. Kullanıcı adını sorunca rota ile biten boş bir ad seç, örneğin rotade_bot.</li>
+          <li>BotFather’ın verdiği token’ı bu sohbete yapıştırma. Cursor’daki gizli alanlardan TELEGRAM_BOT_TOKEN kısmına kaydet.</li>
+          <li>Uzun rastgele bir cümle üret ve TELEGRAM_WEBHOOK_SECRET alanına kaydet. Bunu kimseyle paylaşma.</li>
+          <li>Sitenin https adresini APP_URL alanına yaz. Adres https ile başlamalıdır.</li>
+          <li>Bu sayfadaki “Bağlantıyı denetle” düğmesine bas. Durum “Bağlı” olursa webhook kurulmuştur.</li>
+          <li>Kendi Telegram hesabından bota /start yaz.</li>
+          <li>Yönetim panelinde Telegram mesajlarını aç. Konuşmanın yanındaki tg: ile başlayan sohbet numarası senin yönetici kimliğindir. Yalnız rakamı TELEGRAM_ADMIN_CHAT_ID alanına kaydet. Bu bir telefon numarası değildir.</li>
+          <li>Aynı sohbetten bir deneme mesajı daha gönder. Mesajlar ekranından yanıt yaz. Yanıt Telegram’da görünürse kurulum tamamdır.</li>
+          <li>Bağlı değilse bu sayfa ve Entegrasyonlar ekranı “Kurulum bekleniyor” der. Token bu ekrana yazılmaz. Hata cümlesi bağlantı kutusunda görünür.</li>
+        </ol>
+      </section>
+
       <section className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-medium">Bağlantı</h2>
-            <span className="rounded-full bg-muted px-2 py-1 text-xs">{connected ? "Bağlı" : "Bağlı değil"}</span>
+            <span className="rounded-full bg-muted px-2 py-1 text-xs">{connected ? "Bağlı" : "Kurulum bekleniyor"}</span>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{overview.detail}</p>
           <form action={checkTelegramAction} className="mt-4">

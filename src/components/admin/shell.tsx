@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { logoutAction } from "@/server/actions/auth";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 const links = [
   ["Genel bakış", "/admin"],
   ["Adaylar", "/admin/adaylar"],
+  ["Bildirimler", "/admin/bildirimler"],
   ["İletişim", "/admin/iletisim"],
   ["Telegram", "/admin/mesajlar"],
   ["İşverenler", "/admin/isverenler"],
   ["Yorumlar", "/admin/yorumlar"],
   ["İçerik", "/admin/icerik"],
+  ["Asistan", "/admin/asistan"],
+  ["Durum metinleri", "/admin/durumlar"],
   ["Bilgi bankası", "/admin/bilgi"],
   ["Denetim", "/admin/denetim"],
   ["Ayarlar", "/admin/ayarlar"],
@@ -24,13 +28,16 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-full bg-[#f4f1ea] md:grid md:grid-cols-[220px_1fr]">
+    <div className="min-h-full bg-background md:grid md:grid-cols-[220px_1fr]">
       <aside className="bg-[#0c1c2e] text-[#f4f1ea] md:min-h-screen">
         <div className="flex items-center justify-between px-4 py-4 md:block">
           <Link href="/admin" className="font-serif text-xl">
             ROTA <span className="text-accent">DE</span>
           </Link>
           <p className="mt-1 text-xs text-white/50">Yönetim</p>
+          <div className="mt-3">
+            <ThemeToggle toDark="Gece modu" toLight="Gündüz modu" />
+          </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:space-y-1 md:px-3">
           {links.map(([label, href]) => (

@@ -15,6 +15,7 @@ export function ContactForm({
     email: string;
     message: string;
     preference: string;
+    phone: string;
     consent: string;
     submit: string;
     done: string;
@@ -28,6 +29,7 @@ export function ContactForm({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
+  const [preference, setPreference] = useState("email");
 
   if (done) {
     return (
@@ -50,7 +52,7 @@ export function ContactForm({
           email: form.get("email"),
           message: form.get("message"),
           contactPreference: form.get("contactPreference"),
-          phone: "",
+          phone: form.get("phone") || "",
           consent: form.get("consent") === "on" ? true : false,
           idempotencyKey: key,
           companyWebsite: website,
@@ -77,12 +79,18 @@ export function ContactForm({
       </div>
       <label className="grid gap-1.5 text-sm">
         {labels.preference}
-        <select name="contactPreference" className="h-11 rounded-lg border border-input bg-card px-3" defaultValue="email">
-          {["telegram", "email", "phone"].map((item) => (
-            <option key={item} value={item}>{labels.options[item]}</option>
+        <select name="contactPreference" className="h-11 rounded-lg border border-input bg-card px-3" value={preference} onChange={(event) => setPreference(event.target.value)}>
+          {["email", "phone", "telegram"].map((item) => (
+            <option key={item} value={item}>{item === "phone" ? labels.phone : labels.options[item]}</option>
           ))}
         </select>
       </label>
+      {preference === "phone" ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor="phone">{labels.phone}</Label>
+          <Input id="phone" name="phone" required minLength={8} className="h-11" inputMode="tel" />
+        </div>
+      ) : null}
       <label className="flex items-start gap-3 text-sm leading-6">
         <input type="checkbox" name="consent" className="mt-1" required />
         {labels.consent}

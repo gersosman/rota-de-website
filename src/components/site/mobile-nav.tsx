@@ -10,14 +10,14 @@ export function MobileNav({ items, cta }: { items: Array<{ href: string; label: 
   return (
     <Sheet>
       <SheetTrigger
-        className="inline-flex size-9 items-center justify-center rounded-lg border border-white/15 lg:hidden"
+        className="inline-flex size-9 items-center justify-center rounded-lg border border-hero-border text-hero-foreground lg:hidden"
         aria-label="Menü"
       >
         <Menu className="size-4" />
       </SheetTrigger>
-      <SheetContent side="left" className="bg-[#0c1c2e] text-[#f4f1ea]">
+      <SheetContent side="left" className="bg-hero text-hero-foreground">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 font-serif text-[#f4f1ea]">
+          <SheetTitle className="flex items-center gap-2 font-serif text-hero-foreground">
             <Image src="/mark.svg" alt="" width={32} height={32} unoptimized className="size-8 rounded-md" />
             ROTA DE
           </SheetTitle>

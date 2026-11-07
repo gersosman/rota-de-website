@@ -287,9 +287,47 @@ export async function createTelegramLead(input: {
   });
 }
 
+function selectedChannels(input: JourneyInput) {
+  const channels = input.channels?.length ? [...new Set(input.channels)] : input.contactPreference ? [input.contactPreference] : [];
+  const legacy = !input.channels?.length;
+  const phone = (channels.includes("phone") || legacy) && input.phone?.trim() ? input.phone.trim() : null;
+  const email = channels.includes("email") && input.email?.trim() ? input.email.trim().toLowerCase() : null;
+  const telegram = channels.includes("telegram") && input.telegramHandle?.trim()
+    ? `@${input.telegramHandle.trim().replace(/^@/, "")}`
+    : null;
+  return { channels, phone, email, telegram, preference: channels[0] ?? "phone" };
+}
+
+export async function findRecentMatch(input: { fullName: string; phone: string | null; email: string | null; telegram: string | null }) {
+  const phone = (input.phone ?? "").replace(/\D/g, "");
+  const rows = await sql<{ public_code: string }>(
+    `select public_code from leads
+     where deleted_at is null and merged_into is null
+       and lower(full_name) = lower($1)
+       and created_at > now() - interval '30 minutes'
+       and (
+         ($2 <> '' and regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = $2)
+         or ($3 <> '' and lower(coalesce(email, '')) = $3)
+         or ($4 <> '' and lower(replace(coalesce(telegram_handle, ''), '@', '')) = lower(replace($4, '@', '')))
+       )
+     order by created_at desc
+     limit 1`,
+    [input.fullName.trim(), phone, (input.email ?? "").toLowerCase(), input.telegram ?? ""],
+  );
+  return rows[0]?.public_code ?? null;
+}
+
 export async function createJourneyLead(input: JourneyInput) {
   const existing = await findSubmission(input.idempotencyKey);
   if (existing) return { publicCode: existing, duplicate: true as const };
+  const contact = selectedChannels(input);
+  const recent = await findRecentMatch({
+    fullName: input.fullName,
+    phone: contact.phone,
+    email: contact.email,
+    telegram: contact.telegram,
+  });
+  if (recent) return { publicCode: recent, duplicate: true as const };
   const german = input.german === "beginner" ? "A1" : input.german === "mid" ? "B1" : input.german === "good" ? "B2" : "none";
   const classification = classifyAssessment({
     hasCe: input.ce === "have" ? "yes" : "no",
@@ -300,25 +338,25 @@ export async function createJourneyLead(input: JourneyInput) {
   return withTransaction(async (query) => {
     const version = await query<{ id: string }>("select id from legislation_versions where is_active = true limit 1");
     const publicCode = await allocatePublicCode(query);
-    const email = input.email?.trim() ? input.email.trim().toLowerCase() : null;
     const leads = await query<{ id: string }>(
       `insert into leads (
-         public_code, full_name, email, contact_preference, phone, city, country, availability, licence_classes,
+         public_code, full_name, email, contact_preference, phone, telegram_handle, city, country, availability, licence_classes,
          experience_range, eu_eea_licence, code95_status, german_level, intent, age_range,
-         ce_intent, src3_status, family_status, spouse_german, children_ages, marketing_opt_in,
+         ce_intent, src3_status, family_status, spouse_german, children_ages, marketing_opt_in, contact_channels,
          source, status, scenario_hint, notes
        ) values (
-         $1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,
-         $10,'unknown','unknown',$11,'unsure','undisclosed',
-         $12,$13,$14,$15,$16,$17,
-         'website_assessment',$18,$19,$20
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,
+         $11,'unknown','unknown',$12,'unsure','undisclosed',
+         $13,$14,$15,$16,$17,$18,$19::jsonb,
+         'website_assessment',$20,$21,$22
        ) returning id`,
       [
         publicCode,
         input.fullName,
-        email,
-        input.contactPreference,
-        input.phone,
+        contact.email,
+        contact.preference,
+        contact.phone,
+        contact.telegram,
         input.city,
         input.residence,
         input.availability,
@@ -331,11 +369,12 @@ export async function createJourneyLead(input: JourneyInput) {
         input.family === "alone" ? null : (input.spouseGerman ?? null),
         input.family === "family" ? (input.childrenAges || null) : null,
         input.marketingOptIn,
+        JSON.stringify(contact.channels),
         classification.leadStatus,
         classification.hint,
         input.note?.trim()
-          ? `Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.\n${input.note.trim().slice(0, 500)}`
-          : "Görsel ön kayıt. İlk aşamada evrak yok. Hukuki karar değildir.",
+          ? `Ön kayıt. İlk aşamada belge istenmez.\n${input.note.trim().slice(0, 500)}`
+          : "Ön kayıt. İlk aşamada belge istenmez.",
       ],
     );
     const leadId = leads[0]?.id;
@@ -354,7 +393,7 @@ export async function createJourneyLead(input: JourneyInput) {
       leadId,
       CONSENT_VERSION,
     ]);
-    if (input.contactPreference === "telegram") {
+    if (contact.channels.includes("telegram")) {
       await query(
         `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'telegram_service', $2, true)`,
         [leadId, CONSENT_VERSION],

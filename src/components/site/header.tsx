@@ -28,7 +28,7 @@ export function SiteHeader({
 }) {
   const items = links.map(([key, href]) => ({ href, label: labels[key] }));
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0c1c2e] text-[#f4f1ea]">
+    <header className="sticky top-0 z-40 border-b border-hero-border bg-hero text-hero-foreground">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
         <MobileNav items={items} cta={cta} />
         <Link href="/" className="flex items-center gap-2.5">
@@ -38,9 +38,9 @@ export function SiteHeader({
             <span className="text-sm font-semibold text-accent">DE</span>
           </span>
         </Link>
-        <nav className="ml-3 hidden items-center gap-3 text-[13px] whitespace-nowrap text-white/75 xl:flex">
+        <nav className="ml-3 hidden items-center gap-3 text-[13px] whitespace-nowrap text-hero-muted xl:flex">
           {items.map((item) => (
-            <Link key={item.href} href={item.href} className="hover:text-white">
+            <Link key={item.href} href={item.href} className="hover:text-hero-foreground">
               {item.label}
             </Link>
           ))}

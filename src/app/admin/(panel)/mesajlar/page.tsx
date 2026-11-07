@@ -37,7 +37,7 @@ export default async function MessagesPage(props: { searchParams: Promise<Record
       {telegram?.last_error ? <p className="mt-2 text-xs text-muted-foreground">{telegram.last_error}</p> : null}
       <div className="mt-4 flex gap-2 text-sm">
         <a className="rounded-full bg-card px-3 py-2" href="/admin/mesajlar">Tümü</a>
-        <a className="rounded-full bg-card px-3 py-2" href="/admin/mesajlar?human=1">İnsan desteği</a>
+        <a className="rounded-full bg-card px-3 py-2" href="/admin/mesajlar?human=1">Destek ekibi</a>
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-[280px_1fr]">
         <ul className="space-y-2">
@@ -47,7 +47,7 @@ export default async function MessagesPage(props: { searchParams: Promise<Record
               <a href={`/admin/mesajlar?chat=${encodeURIComponent(item.external_thread_id ?? "")}`} className={`block rounded-2xl border p-3 text-sm ${active?.id === item.id ? "border-accent" : "border-border bg-card"}`}>
                 <p className="font-medium">Telegram · {item.public_code ?? "Dosya yok"}</p>
                 <p className="text-xs text-muted-foreground">Sohbet: {item.external_thread_id}</p>
-                <p className="text-xs text-muted-foreground">{item.status === "waiting_human" ? "İnsan bekliyor" : "Açık"} · {formatDateTime(item.updated_at)}</p>
+                <p className="text-xs text-muted-foreground">{item.status === "waiting_human" ? "Destek bekliyor" : "Açık"} · {formatDateTime(item.updated_at)}</p>
               </a>
             </li>
           ))}

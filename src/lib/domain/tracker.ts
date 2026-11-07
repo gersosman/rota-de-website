@@ -49,16 +49,19 @@ function same(left: string, right: string): boolean {
 }
 
 export function verifierMatches(
-  record: { email: string | null; phone: string | null },
+  record: { email: string | null; phone: string | null; telegram?: string | null },
   verifier: string,
 ): boolean {
   const raw = verifier.trim();
   if (raw.length < 5 || raw.length > 180) return false;
   const email = (record.email ?? "").trim().toLowerCase();
   const phone = (record.phone ?? "").replace(/\D/g, "");
+  const telegram = (record.telegram ?? "").replace(/^@/, "").toLowerCase();
   const givenEmail = raw.toLowerCase();
   const givenPhone = raw.replace(/\D/g, "");
+  const givenTelegram = raw.replace(/^@/, "").toLowerCase();
   const emailOk = email.includes("@") && same(givenEmail, email);
   const phoneOk = phone.length >= 8 && givenPhone.length >= 8 && same(givenPhone, phone);
-  return emailOk || phoneOk;
+  const telegramOk = telegram.length >= 5 && same(givenTelegram, telegram);
+  return emailOk || phoneOk || telegramOk;
 }

@@ -104,7 +104,7 @@ export default async function TelegramPage(props: { searchParams: Promise<Record
               ["Hizmetler", "services"],
               ["Sorular", "faq"],
               ["İletişim", "contact"],
-              ["İnsan", "human"],
+              ["Destek", "human"],
             ].map(([label, data]) => (
               <Button key={data} type="submit" name="callback" value={data} variant="outline" className="h-10 bg-white">
                 {label}

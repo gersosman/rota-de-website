@@ -39,7 +39,7 @@ export const SCENARIO_LABEL: Record<ScenarioHint, string> = {
   BESCHV_24A_ABS1_RELATED: "§ 24a Abs. 1 inceleme izi",
   BESCHV_24A_ABS2_RELATED: "§ 24a Abs. 2 inceleme izi",
   INSUFFICIENT_INFORMATION: "Bilgi eksik",
-  NEEDS_REVIEW: "İnsan incelemesi",
+  NEEDS_REVIEW: "Değerlendirme bekliyor",
 };
 
 export const AUTOMATION_LABEL: Record<string, string> = {

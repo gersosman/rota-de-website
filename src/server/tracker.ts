@@ -102,13 +102,13 @@ export type PublicTrack = {
 export async function lookupPublic(code: string, verifier: string): Promise<PublicTrack | null> {
   const normalized = code.trim().toUpperCase();
   if (!isApplicationCode(normalized)) return null;
-  const leads = await sql<{ id: string; email: string | null; phone: string | null; tracker_stage: string }>(
-    `select id, email, phone, tracker_stage from leads
+  const leads = await sql<{ id: string; email: string | null; phone: string | null; telegram_handle: string | null; tracker_stage: string }>(
+    `select id, email, phone, telegram_handle, tracker_stage from leads
      where public_code = $1 and deleted_at is null and merged_into is null`,
     [normalized],
   );
   const lead = leads[0];
-  if (!lead || !isTrackerStage(lead.tracker_stage) || !verifierMatches(lead, verifier)) return null;
+  if (!lead || !isTrackerStage(lead.tracker_stage) || !verifierMatches({ email: lead.email, phone: lead.phone, telegram: lead.telegram_handle }, verifier)) return null;
   const events = await sql<{ to_stage: string; public_message: string; created_at: string }>(
     `select to_stage, public_message, created_at from tracker_events
      where lead_id = $1 order by created_at`,

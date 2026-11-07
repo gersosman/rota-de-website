@@ -2,11 +2,11 @@
 
 Türkiye'den Almanya'ya profesyonel tır şoförlüğü düşünen adaylar için danışmanlık ve müşteri yönetim platformu.
 
-Bu depo Faz 1–4.1'i içerir: herkese açık site, başvuru takip, yönetici paneli, CRM, adım adım ön değerlendirme, gündüz/gece teması ve Telegram. WhatsApp yoktur. Yapay zekâ ancak `OPENAI_API_KEY` tanımlıysa cevap verir. Anahtarı olmayan kanal **kurulum bekliyor** görünür.
+Bu depo Faz 1–4.2'yi içerir: herkese açık site, başvuru takip, yönetici paneli, CRM, adım adım ön değerlendirme, gündüz/gece teması ve Telegram. WhatsApp yoktur. Yapay zekâ ancak `OPENAI_API_KEY` tanımlıysa cevap verir. Anahtarı olmayan kanal **kurulum bekliyor** görünür.
 
 ## Ne işe yarar
 
-Ziyaretçi ücretsiz ön değerlendirmeyi adım adım doldurur. Sistem `ROTA-yıl-kod` biçiminde tahmin edilmesi zor bir başvuru numarası üretir. Aday bu numarayı, başvuruda yazdığı e-posta veya telefonla `/basvuru-takip` ekranından sorgular. Yönetici dosyayı ilk kez açınca durum “Başvuru Alındı”ndan “Başvurunuz İnceleniyor”a geçer. Bu bir vize, oturum veya iş kararı değildir.
+Ziyaretçi ücretsiz ön değerlendirmeyi adım adım doldurur. Şehir alanı, proje içindeki GeoNames Almanya ve Türkiye yerleşim listesinden öneri sunar (CC BY 4.0); yazım sırasında dış bir servise istek gitmez. İletişim için telefon, e-posta ve Telegram ayrı ayrı veya birlikte seçilir. Sistem `ROTA-yıl-kod` biçiminde tahmin edilmesi zor bir başvuru numarası üretir. Kayıt, e-posta ve Telegram bildiriminden bağımsızdır: bildirim kurulmamışsa veya gönderilemezse başvuru silinmez. Aday bu numarayı, başvuruda yazdığı e-posta, telefon veya Telegram kullanıcı adıyla `/basvuru-takip` ekranından sorgular. Yönetici dosyayı ilk kez açınca durum “Başvuru Alındı”ndan “Başvurunuz İnceleniyor”a geçer. Bu bir vize, oturum veya iş kararı değildir.
 
 Site Türkçe ve Almancadır. Yönetim paneli Türkçedir. Kişisel telefon yayımlanmaz. Telegram, bot bağlı değilken herkese açık bir bağlantı göstermez. Yapay zekâ asistanı model anahtarı olmadan cevap uydurmaz.
 

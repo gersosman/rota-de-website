@@ -91,7 +91,7 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
         </select>
         <select name="waiting" defaultValue={waiting} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
           <option value="">Bekleyen</option>
-          <option value="human">İnsan desteği</option>
+          <option value="human">Destek ekibi</option>
           <option value="consultation">Görüşme</option>
         </select>
       </form>

@@ -24,7 +24,7 @@ export function ConnectionNotice({ slow, offline }: { slow: string; offline: str
   }, []);
   if (mode === "ok") return null;
   return (
-    <p className="bg-[#163049] px-4 py-2 text-center text-sm text-[#f4f1ea]" role="status">
+    <p className="bg-band px-4 py-2 text-center text-sm text-band-foreground" role="status">
       {mode === "offline" ? offline : slow}
     </p>
   );

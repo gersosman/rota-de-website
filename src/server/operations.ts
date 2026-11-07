@@ -118,7 +118,7 @@ export async function createSupportRequest(input: { fullName: string; message: s
       `insert into leads (public_code, full_name, email, phone, contact_preference, source, status, notes)
        values ($1, $2, $3, $4, $5, 'website_contact', 'CONSULTATION_PENDING', $6)
        returning id`,
-      [publicCode, fullName, email || null, phone || null, preference, "İnsan desteği talebi."],
+      [publicCode, fullName, email || null, phone || null, preference, "Destek ekibi talebi."],
     );
     const leadId = leads[0]?.id;
     if (!leadId) throw new Error("lead_insert_failed");

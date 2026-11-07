@@ -29,26 +29,26 @@ export function AdminShell({
 }) {
   return (
     <div className="min-h-full bg-background md:grid md:grid-cols-[220px_1fr]">
-      <aside className="bg-[#0c1c2e] text-[#f4f1ea] md:min-h-screen">
+      <aside className="bg-hero text-hero-foreground md:min-h-screen">
         <div className="flex items-center justify-between px-4 py-4 md:block">
           <Link href="/admin" className="font-serif text-xl">
             ROTA <span className="text-accent">DE</span>
           </Link>
-          <p className="mt-1 text-xs text-white/50">Yönetim</p>
+          <p className="mt-1 text-xs text-hero-muted">Yönetim</p>
           <div className="mt-3">
             <ThemeToggle toDark="Gece modu" toLight="Gündüz modu" />
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:space-y-1 md:px-3">
           {links.map(([label, href]) => (
-            <Link key={href} href={href} className="block rounded-lg px-3 py-2 text-sm whitespace-nowrap text-white/80 hover:bg-white/10">
+            <Link key={href} href={href} className="block rounded-lg px-3 py-2 text-sm whitespace-nowrap text-hero-foreground/80 hover:bg-hero-foreground/10">
               {label}
             </Link>
           ))}
         </nav>
         <form action={logoutAction} className="hidden px-3 py-4 md:block">
-          <p className="truncate px-3 text-xs text-white/50">{name}</p>
-          <Button type="submit" variant="outline" className="mt-3 w-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">
+          <p className="truncate px-3 text-xs text-hero-muted">{name}</p>
+          <Button type="submit" variant="outline" className="mt-3 w-full border-hero-border bg-transparent text-hero-foreground hover:bg-hero-foreground/10 hover:text-hero-foreground">
             Çıkış
           </Button>
         </form>

@@ -63,6 +63,15 @@ const phoneField = z
     return digits.length >= 8 && digits.length <= 15;
   }, "phone");
 
+export const journeyChannels = ["phone", "email", "telegram"] as const;
+
+const handleField = z
+  .string()
+  .trim()
+  .max(40)
+  .optional()
+  .refine((value) => !value || /^@?[A-Za-z0-9_]{5,32}$/.test(value), "telegram");
+
 export const journeySchema = z
   .object({
     ce: z.enum(["have", "planning"]),
@@ -75,10 +84,12 @@ export const journeySchema = z
     spouseGerman: z.enum(["yes", "no", "unknown"]).optional(),
     childrenAges: z.string().trim().max(80).optional(),
     fullName: z.string().trim().min(3).max(120),
-    phone: phoneField,
+    phone: z.string().trim().max(20).optional(),
     email: z.union([z.literal(""), z.email().max(180)]).optional(),
     city: z.string().trim().min(2).max(80),
-    contactPreference: z.enum(["telegram", "email", "phone"]),
+    channels: z.array(z.enum(journeyChannels)).max(3).optional(),
+    contactPreference: z.enum(journeyChannels).optional(),
+    telegramHandle: handleField,
     note: z.string().trim().max(500).optional(),
     marketingOptIn: z.boolean(),
     consent: z.literal(true),
@@ -89,6 +100,21 @@ export const journeySchema = z
   .superRefine((value, context) => {
     if (value.family !== "alone" && !value.spouseGerman) {
       context.addIssue({ code: "custom", path: ["spouseGerman"], message: "required" });
+    }
+    const modern = Boolean(value.channels?.length);
+    const channels = modern ? (value.channels ?? []) : value.contactPreference ? [value.contactPreference] : [];
+    if (channels.length === 0) {
+      context.addIssue({ code: "custom", path: ["channels"], message: "required" });
+    }
+    const phoneRequired = channels.includes("phone") || !modern;
+    if (phoneRequired && !phoneField.safeParse(value.phone ?? "").success) {
+      context.addIssue({ code: "custom", path: ["phone"], message: "phone" });
+    }
+    if (channels.includes("email") && !value.email?.includes("@")) {
+      context.addIssue({ code: "custom", path: ["email"], message: "email" });
+    }
+    if (modern && channels.includes("telegram") && !/^@?[A-Za-z0-9_]{5,32}$/.test(value.telegramHandle ?? "")) {
+      context.addIssue({ code: "custom", path: ["telegramHandle"], message: "telegram" });
     }
   });
 

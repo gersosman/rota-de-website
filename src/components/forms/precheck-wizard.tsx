@@ -1,8 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { submitJourney } from "@/server/actions/intake";
+import { CityField } from "@/components/forms/city-field";
+import { ChannelPicker, type ContactChannel } from "@/components/forms/channel-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +53,14 @@ type Copy = {
   emailSent: string;
   emailSkipped: string;
   emailFailed: string;
+  emailQueued: string;
   noEmail: string;
+  channelTitle: string;
+  channelHint: string;
+  channelNeed: string;
+  cityHint: string;
+  telegramUser: string;
+  reference: string;
   duplicate: string;
   name: string;
   phone: string;
@@ -79,7 +88,6 @@ export function PrecheckWizard({
   copy: Copy;
   initial: { ce?: string; src3?: string; german?: string; family?: string };
 }) {
-  const key = `journey-${useId().replace(/[^a-zA-Z0-9]/g, "")}-rota`;
   const [step, setStep] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +105,8 @@ export function PrecheckWizard({
     phone: "",
     city: "",
     email: "",
-    contactPreference: "phone",
+    telegram: "",
+    channels: [] as ContactChannel[],
     note: "",
     marketing: false,
     consent: false,
@@ -118,43 +127,76 @@ export function PrecheckWizard({
     country: Boolean(form.residence),
     german: Boolean(form.german),
     when: Boolean(form.availability),
-    contact: form.fullName.trim().length >= 3 && form.phone.replace(/\D/g, "").length >= 8 && form.city.trim().length >= 2 && form.consent && form.ack && (form.contactPreference !== "email" || form.email.includes("@")),
+    contact:
+      form.fullName.trim().length >= 3 &&
+      form.city.trim().length >= 2 &&
+      form.channels.length > 0 &&
+      form.consent &&
+      form.ack &&
+      (!form.channels.includes("phone") || form.phone.replace(/\D/g, "").length >= 8) &&
+      (!form.channels.includes("email") || form.email.includes("@")) &&
+      (!form.channels.includes("telegram") || /^@?[A-Za-z0-9_]{5,32}$/.test(form.telegram.trim())),
     summary: true,
   };
 
   async function send() {
     setPending(true);
     setError(null);
-    const result = await submitJourney({
-      ce: form.ce,
-      src3: form.src3,
-      experience: form.experience,
-      german: form.german,
-      family: "alone",
-      residence: form.residence,
-      availability: form.availability,
-      fullName: form.fullName,
-      phone: form.phone,
-      email: form.email,
-      city: form.city,
-      contactPreference: form.contactPreference,
-      note: form.note,
-      marketingOptIn: form.marketing,
-      consent: true,
-      disclaimerAck: true,
-      idempotencyKey: key,
-      companyWebsite: website,
-    });
+    const storageKey = "rota-journey-key";
+    let idempotencyKey = `journey-${crypto.randomUUID()}`;
+    try {
+      const existing = window.sessionStorage.getItem(storageKey);
+      if (existing && existing.length >= 8) idempotencyKey = existing;
+      else window.sessionStorage.setItem(storageKey, idempotencyKey);
+    } catch {
+      /* private mode keeps the in-memory key */
+    }
+    let result: Awaited<ReturnType<typeof submitJourney>>;
+    try {
+      result = await submitJourney({
+        ce: form.ce,
+        src3: form.src3,
+        experience: form.experience,
+        german: form.german,
+        family: "alone",
+        residence: form.residence,
+        availability: form.availability,
+        fullName: form.fullName,
+        phone: form.channels.includes("phone") ? form.phone : "",
+        email: form.channels.includes("email") ? form.email.trim() : "",
+        telegramHandle: form.channels.includes("telegram") ? form.telegram.trim() : "",
+        city: form.city,
+        channels: form.channels,
+        contactPreference: form.channels[0],
+        note: form.note,
+        marketingOptIn: form.marketing,
+        consent: true,
+        disclaimerAck: true,
+        idempotencyKey,
+        companyWebsite: website,
+      });
+    } catch {
+      setError(copy.errors.unavailable ?? "");
+      setPending(false);
+      return;
+    }
     setPending(false);
     if (!result.ok) {
-      setError(copy.errors[result.code] ?? copy.errors.unavailable ?? "");
+      const base = copy.errors[result.code] ?? copy.errors.unavailable ?? "";
+      const ref = "ref" in result && result.ref ? `${copy.reference}: ${result.ref}` : "";
+      setError(ref ? `${base} ${ref}` : base);
       return;
+    }
+    try {
+      window.sessionStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
     }
     setDone({ code: result.publicCode, duplicate: result.duplicate, emailStatus: "emailStatus" in result ? result.emailStatus : undefined });
   }
 
   if (done) {
-    const mail = done.emailStatus === "sent" ? copy.emailSent : done.emailStatus === "failed" ? copy.emailFailed : done.emailStatus === "skipped" ? copy.emailSkipped : copy.noEmail;
+    const mail = done.emailStatus === "sent" ? copy.emailSent : done.emailStatus === "failed" ? copy.emailFailed : done.emailStatus === "skipped" ? copy.emailSkipped : done.emailStatus === "queued" ? copy.emailQueued : copy.noEmail;
     return (
       <section className="mx-auto max-w-xl px-4 py-16">
         <p className="font-serif text-4xl leading-tight">{copy.successTitle}</p>
@@ -207,22 +249,26 @@ export function PrecheckWizard({
           <div>
             <h1 className="font-serif text-4xl leading-tight">{copy.contactTitle}</h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{copy.contactBody}</p>
-            <div className="mt-6 grid gap-3">
-              <Input value={form.fullName} onChange={(event) => set("fullName", event.target.value)} placeholder={copy.name} className="h-12" />
-              <Input value={form.phone} onChange={(event) => set("phone", event.target.value)} placeholder={copy.phone} className="h-12" inputMode="tel" />
-              <Input value={form.city} onChange={(event) => set("city", event.target.value)} placeholder={copy.city} className="h-12" />
-              <Input value={form.email} onChange={(event) => set("email", event.target.value)} placeholder={copy.email} className="h-12" type="email" />
-              <div className="grid gap-2">
-                {([
-                  ["phone", copy.channelPhone],
-                  ["email", copy.channelEmail],
-                  ["telegram", copy.channelTelegram],
-                ] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => set("contactPreference", value)} className={`rounded-2xl border px-4 py-3 text-left text-sm ${form.contactPreference === value ? "border-accent bg-accent/10" : "border-border bg-card"}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
+            <div className="mt-6 grid gap-4">
+              <Input value={form.fullName} onChange={(event) => set("fullName", event.target.value)} placeholder={copy.name} className="h-12" autoComplete="name" />
+              <CityField
+                value={form.city}
+                onChange={(value) => set("city", value)}
+                label={copy.city}
+                hint={copy.cityHint}
+                countryLabel={{ DE: copy.countries.DE ?? "DE", TR: copy.countries.TR ?? "TR" }}
+              />
+              <ChannelPicker
+                value={form.channels}
+                onChange={(value) => set("channels", value)}
+                title={copy.channelTitle}
+                hint={copy.channelHint}
+                required={copy.channelNeed}
+                labels={{ phone: copy.channelPhone, email: copy.channelEmail, telegram: copy.channelTelegram }}
+              />
+              {form.channels.includes("phone") ? <Input value={form.phone} onChange={(event) => set("phone", event.target.value)} placeholder={copy.phone} className="h-12" inputMode="tel" autoComplete="tel" /> : null}
+              {form.channels.includes("email") ? <Input value={form.email} onChange={(event) => set("email", event.target.value)} placeholder={copy.email} className="h-12" type="email" autoComplete="email" /> : null}
+              {form.channels.includes("telegram") ? <Input value={form.telegram} onChange={(event) => set("telegram", event.target.value)} placeholder={copy.telegramUser} className="h-12" autoComplete="off" /> : null}
               <Textarea value={form.note} onChange={(event) => set("note", event.target.value)} placeholder={copy.note} />
               <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={form.consent} onChange={(event) => set("consent", event.target.checked)} />{copy.consent}</label>
               <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={form.ack} onChange={(event) => set("ack", event.target.checked)} />{copy.ack}</label>

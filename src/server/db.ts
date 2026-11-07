@@ -29,33 +29,41 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function startLocal(): Promise<PGlite> {
-  const persist = process.env.NEXT_PHASE !== "phase-production-build";
-  const directory = path.join(process.cwd(), "data", "pglite");
-  if (persist) await mkdir(directory, { recursive: true });
-  const db = new PGlite(persist ? directory : undefined);
+let appliedNames: Set<string> | null = null;
+
+export async function applyPendingMigrations(db: PGlite) {
+  const directory = path.join(process.cwd(), "migrations");
+  const files = (await readdir(directory).catch(() => [])).filter((file) => file.endsWith(".sql")).sort();
+  if (appliedNames && files.every((file) => appliedNames?.has(file))) return;
   await db.exec(
     "create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())",
   );
-  const files = (await readdir(path.join(process.cwd(), "migrations")).catch(() => [])).filter((file) =>
-    file.endsWith(".sql"),
-  ).sort();
   const applied = new Set(
     (await db.query<{ name: string }>("select name from schema_migrations")).rows.map((row) => row.name),
   );
   for (const file of files) {
     if (applied.has(file)) continue;
-    const sqlText = await readFile(path.join(process.cwd(), "migrations", file), "utf8");
+    const sqlText = await readFile(path.join(directory, file), "utf8");
     await db.exec("begin");
     try {
       await db.exec(sqlText);
       await db.query("insert into schema_migrations (name) values ($1)", [file]);
       await db.exec("commit");
+      applied.add(file);
     } catch (error) {
       await db.exec("rollback");
       throw error;
     }
   }
+  appliedNames = applied;
+}
+
+async function startLocal(): Promise<PGlite> {
+  const persist = process.env.NEXT_PHASE !== "phase-production-build";
+  const directory = path.join(process.cwd(), "data", "pglite");
+  if (persist) await mkdir(directory, { recursive: true });
+  const db = new PGlite(persist ? directory : undefined);
+  await applyPendingMigrations(db);
   return db;
 }
 
@@ -83,6 +91,7 @@ export async function sql<T = Record<string, unknown>>(
   }
   return enqueue(async () => {
     const db = await getLocal();
+    await applyPendingMigrations(db);
     const result = await db.query<T>(text, params);
     return result.rows;
   });
@@ -111,6 +120,7 @@ export async function withTransaction<T>(fn: (query: QueryFn) => Promise<T>): Pr
 
   return enqueue(async () => {
     const db = await getLocal();
+    await applyPendingMigrations(db);
     const query: QueryFn = async <T,>(text: string, params: unknown[] = []) => {
       const result = await db.query(text, params);
       return result.rows as T[];

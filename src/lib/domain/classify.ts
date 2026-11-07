@@ -52,7 +52,7 @@ export function classifyAssessment(facts: AssessmentFacts): Classification {
       hint: "INSUFFICIENT_INFORMATION",
       leadStatus: "NEEDS_REVIEW",
       reason:
-        "Zorunlu ön bilgiler eksik. Dosya insan incelemesine alındı. Bu sonuç vize, çalışma izni veya iş kararı değildir.",
+        "Zorunlu ön bilgiler eksik. Dosya değerlendirmeye alındı. Bu sonuç vize, çalışma izni veya iş kararı değildir.",
       missing,
     };
   }
@@ -64,7 +64,7 @@ export function classifyAssessment(facts: AssessmentFacts): Classification {
       hint: "BESCHV_24A_ABS1_RELATED",
       leadStatus: "PRE_QUALIFICATION",
       reason:
-        "Bildirilen olgular AB/AEA sürücü belgesi, Code 95 ve meslekî tır sınıfı içeriyor. Dosya § 24a Abs. 1 ile ilişkili insan incelemesine ayrıldı. Uygunluk kararı verilmedi.",
+        "Bildirilen olgular AB/AEA sürücü belgesi, Code 95 ve meslekî tır sınıfı içeriyor. Dosya § 24a Abs. 1 ile ilişkili değerlendirmeye ayrıldı. Uygunluk kararı verilmedi.",
       missing: [],
     };
   }
@@ -74,7 +74,7 @@ export function classifyAssessment(facts: AssessmentFacts): Classification {
       hint: "BESCHV_24A_ABS2_RELATED",
       leadStatus: "PRE_QUALIFICATION",
       reason:
-        "Meslekî tır sınıfı bildirildi ve Code 95 olmadığı belirtildi. Dosya § 24a Abs. 2 ile ilişkili insan incelemesine ayrıldı. Uygunluk kararı verilmedi.",
+        "Meslekî tır sınıfı bildirildi ve Code 95 olmadığı belirtildi. Dosya § 24a Abs. 2 ile ilişkili değerlendirmeye ayrıldı. Uygunluk kararı verilmedi.",
       missing: [],
     };
   }
@@ -83,7 +83,7 @@ export function classifyAssessment(facts: AssessmentFacts): Classification {
     hint: "NEEDS_REVIEW",
     leadStatus: "NEEDS_REVIEW",
     reason:
-      "Bildirilen olgular tek bir senaryo izine ayrılmıyor veya bir cevap belirsiz. İnsan incelemesi gerekir. Uygunluk kararı verilmedi.",
+      "Bildirilen olgular tek bir senaryo izine ayrılmıyor veya bir cevap belirsiz. Değerlendirme gerekir. Uygunluk kararı verilmedi.",
     missing: [],
   };
 }

@@ -26,7 +26,7 @@ export const guide: Record<"tr" | "de", GuideSection[]> = {
         "Almanya'da meslekî sürücü olarak çalışmak isteyen üçüncü ülke vatandaşları için genel çerçeve; geçerli bir iş ilişkisi, işverenin koşulları ve yetkili makamın onayına bağlıdır. ROTA DE bu kararı veremez.",
         "İstihdam Tüzüğü § 24a iki ayrı yolu anlatır. Birinci fıkra, yurt içindeki yük taşımacılığında veya otobüsle yolcu taşımacılığında meslekî sürücü olarak çalışmak için onay verilebileceğini söyler. Bu bir 'verilir' hükmü değil, 'verilebilir' hükmüdür.",
         "İkinci fıkra ayrı bir yoldur. İş sözleşmesi, kişinin meslek için gereken ehliyet ve yeterlilikleri edinme tedbirlerine katılmasını zorunlu kılmalı; koşullar bu belge ve yeterliliklerin 15 ay içinde alınabilmesine elverişli olmalı; aynı işverende, yeterlilikten sonrası için somut bir iş teklifi bulunmalı ve kişi, geldiği ülkede bu meslek için ilgili sürücü belgesini taşıdığını göstermelidir. Onay en fazla 15 ay için verilir. Gerekçeli tekil durumda en fazla altı ay daha uzatılabilir. 15 ay otomatik hak değildir.",
-        "İş sözleşmesi, işveren, Federal İş Ajansı onayı, eğitim ve çalışma şartları her dosyada ayrıca okunur. Eksik bilgi varsa dosya insan incelemesinde kalır.",
+        "İş sözleşmesi, işveren, Federal İş Ajansı onayı, eğitim ve çalışma şartları her dosyada ayrıca okunur. Eksik bilgi, dosyanın değerlendirmede kalmasına yol açar.",
       ],
       sourceLabel: "§ 24a BeschV",
       sourceUrl: law,
@@ -63,7 +63,7 @@ export const guide: Record<"tr" | "de", GuideSection[]> = {
       paragraphs: [
         "Code 95, meslekî sürücü yeterliliğinin sürücüler arasında bilinen adıdır. Almanya'da bu yeterliliğin güncel ispatı Fahrerqualifizierungsnachweis (FQN) olarak düzenlenir.",
         "SRC3, FQN ile aynı belge değildir. Birinde olması diğerinin yerine geçmez. Süresi dolmuş veya başka ülkeye ait bir yeterlilik belgesi de ayrıca incelenir.",
-        "Hangi belgenin isteneceği işin türüne, aracın kullanım amacına ve kişinin Almanya'daki çalışma statüsüne göre değişebilir. Kesin liste, insan incelemesinden sonra yazılır.",
+        "Hangi belgenin isteneceği işin türüne, aracın kullanım amacına ve kişinin Almanya'daki çalışma statüsüne göre değişebilir. Kesin liste, dosya değerlendirildikten sonra yazılır.",
       ],
       sourceLabel: "Bundesministerium für Verkehr",
       sourceUrl: bmdv,
@@ -152,7 +152,7 @@ export const guide: Record<"tr" | "de", GuideSection[]> = {
     {
       id: "destek",
       title: "ROTA DE adaya ne sunar?",
-      summary: "Kişisel dosya, insan incelemesi ve iletişim. Hukuki karar veya vize vaadi değildir.",
+      summary: "Kişisel dosya ve iletişim. Hukuki karar veya vize vaadi değildir.",
       paragraphs: [
         "ROTA DE başvuruyu alır, sürüş geçmişini ve hedefi okur, uygunluk görürse kayıtlı gerçek bir işveren fırsatıyla eşleştirmeyi konuşur, görüşme ve sözleşme adımlarını izler.",
         "Ehliyet ve meslekî yeterlilik sürecini resmi kaynaklara dayanarak açıklar. Çalışma ve vize başvurusunda adayın elindeki bilgiyi düzenler. Resmî kurum, işveren veya vize mercii değildir.",
@@ -267,7 +267,7 @@ export const guide: Record<"tr" | "de", GuideSection[]> = {
     {
       id: "destek",
       title: "Was ROTA DE leistet",
-      summary: "Akte, menschliche Prüfung und Kontakt. Keine Rechtsberatung und kein Visumversprechen.",
+      summary: "Persönliche Akte und Kontakt. Keine Rechtsberatung und kein Visumversprechen.",
       paragraphs: ["Im ersten Schritt werden kein Pass und kein Ausweis verlangt."],
       sourceLabel: "§ 24a BeschV",
       sourceUrl: law,

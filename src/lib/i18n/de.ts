@@ -33,17 +33,12 @@ export const de: DeepString<typeof tr> = {
   home: {
     kicker: "Fahrerberatung",
     title: "Deine Fahrerstrecke von der Türkei nach Deutschland.",
-    lead: "Voranmeldung und Gespräch für Lkw-Fahrer. Die Entscheidung trifft die Beratung.",
+    lead: "Voranmeldung und Gespräch für Lkw-Fahrer.",
     primary: "Vorprüfung starten",
     secondary: "Ablauf ansehen",
     from: "Türkei",
     to: "Deutschland",
-    principlesTitle: "Was geleistet wird",
-    principles: [
-      { title: "Mensch prüft", body: "Das Formular entscheidet nicht." },
-      { title: "Zwei Pfade", body: "§ 24a Abs. 1 und Abs. 2 bleiben getrennt." },
-      { title: "Keine Dokumente", body: "Pass und Ausweis werden nicht verlangt." },
-    ],
+    scope: "Die erste Anmeldung nimmt die Angaben in die Akte auf. Das Team liest sie und schreibt den nächsten Schritt über den gewählten Kanal.",
     audienceTitle: "Für wen",
     forTitle: "Passend",
     forBody: "Wenn Sie Angaben für eine Lkw-Tätigkeit in Deutschland lassen wollen.",
@@ -55,7 +50,7 @@ export const de: DeepString<typeof tr> = {
     lead: "Nicht jeder Weg ist gleich. Die Schritte ersetzen einander nicht.",
     steps: [
       { title: "Angaben", body: "Name, Telefon, Stadt, Führerschein, SRC3, Erfahrung, Deutsch und Familie. Zuerst keine Dokumente." },
-      { title: "Prüfung", body: "Ein Berater liest die Akte. Das Formular entscheidet nicht." },
+      { title: "Prüfung", body: "Das Team bewertet die Angaben. Das Formular allein trifft keine Entscheidung." },
       { title: "Kontakt", body: "Die Rückmeldung kommt über Telegram oder den gewählten Kanal." },
       { title: "Zuordnung", body: "Ein Gespräch gibt es nur bei Eignung und einem echten Arbeitgeber. Das ist keine Jobgarantie." },
       { title: "Vertrag und Behörden", body: "Arbeitsvertrag und Visum sind getrennt. Die Behörde entscheidet das Visum." },
@@ -112,7 +107,7 @@ export const de: DeepString<typeof tr> = {
         { q: "Was kann ich als Lkw-Fahrer verdienen?", a: "Brutto und netto sind verschieden. Steuerklasse, Stunden und Vertrag ändern das Ergebnis. Ohne geprüfte Arbeitgeberdaten gibt es keine Zahl." },
       ]},
       { title: "Deutsch", items: [
-        { q: "Kann ich mich ohne Deutsch bewerben?", a: "Ja. Das Niveau wird notiert. Welcher Weg offen ist, prüft ein Mensch." },
+        { q: "Kann ich mich ohne Deutsch bewerben?", a: "Ja. Das Niveau wird notiert. Welcher Weg offen ist, ergibt die Prüfung der Akte." },
       ]},
       { title: "Familie", items: [
         { q: "Kann ich mit meinem Partner kommen?", a: "Die Absicht wird notiert. Die Voraussetzungen hängen vom Aufenthalt und von der Familie ab. Quelle: https://www.make-it-in-germany.com/de/leben-in-deutschland/familie-nachholen" },
@@ -123,7 +118,7 @@ export const de: DeepString<typeof tr> = {
         { q: "Was passiert bei einer Ablehnung?", a: "Die Behörde entscheidet. Eine Ablehnung bleibt möglich. ROTA DE verspricht das Ergebnis nicht." },
       ]},
       { title: "Leistungen von ROTA DE", items: [
-        { q: "Welche Leistungen gibt es?", a: "Bewerbung, menschliche Prüfung, Erklärung des Ablaufs und, wo es passt, Koordination mit einem echten Arbeitgeber. Keine Rechtsberatung und keine Visumentscheidung." },
+        { q: "Welche Leistungen gibt es?", a: "Bewerbung, Erklärung des Ablaufs und, wo es passt, Koordination mit einem echten Arbeitgeber. Keine Rechtsberatung und keine Visumentscheidung." },
       ]},
       { title: "Bewerbung und Kontakt", items: [
         { q: "Welche Dokumente schicke ich zuerst?", a: "Keine. Pass, Ausweis und Fotos von Dokumenten werden nicht verlangt." },
@@ -149,7 +144,7 @@ export const de: DeepString<typeof tr> = {
     errorInvalid: "Einige Antworten fehlen oder sind ungültig.",
     errorRate: "Zu viele Versuche. Bitte später erneut senden.",
     errorOrigin: "Die Sendung wird nur von dieser Website angenommen.",
-    errorUnavailable: "Die Speicherung ist gerade nicht möglich. Bitte später erneut versuchen.",
+    errorUnavailable: "Der Antrag konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es in einigen Minuten erneut. Wenn das Problem bleibt, erreichen Sie das Team über die Kontaktseite.",
     consent: "Ich willige ein, dass meine Angaben für die Vorprüfung und die Kontaktaufnahme verarbeitet werden. Das ist keine Rechtsberatung und kein behördlicher Antrag.",
     ack: "Ich habe verstanden, dass dieses Formular kein Visum, keinen Aufenthalt, keine Beschäftigungserlaubnis und keine Jobzusage erteilt.",
     questions: [
@@ -361,8 +356,15 @@ export const de: DeepString<typeof tr> = {
     when13: "In 1–3 Monaten",
     when36: "In 3–6 Monaten",
     whenLater: "Später",
-    contactTitle: "Wie erreichen wir dich?",
-    contactBody: "Deine Telefonnummer bleibt im Team. Sie wird nicht veröffentlicht. Ohne Telegram reichen E-Mail oder Rückruf.",
+    contactTitle: "Kontakt",
+    contactBody: "Es werden nur die Kanäle abgefragt, die du auswählst. Nummer und Nutzername werden nicht veröffentlicht.",
+    channelTitle: "Über welchen Kanal sollen wir Sie erreichen?",
+    channelHint: "Ein Kanal oder mehrere sind möglich.",
+    channelNeed: "Wählen Sie mindestens einen Kanal.",
+    cityHint: "Die ersten Buchstaben reichen. Fehlt der Ort, schreiben Sie ihn selbst.",
+    telegramUser: "Telegram-Nutzername",
+    reference: "Referenz",
+    emailQueued: "Der E-Mail-Versand läuft getrennt von der Speicherung. Die Nummer auf diesem Bildschirm gilt.",
     summaryTitle: "Kurzer Überblick",
     summaryNote: "Das ist eine Vorprüfung. Sie verspricht keinen Vertrag und kein Visum.",
     submit: "Antrag speichern",

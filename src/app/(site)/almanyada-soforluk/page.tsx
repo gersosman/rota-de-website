@@ -29,15 +29,16 @@ export default async function GermanyPage() {
   const reviewed = new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "tr-TR", { dateStyle: "long", timeZone: "Europe/Berlin" }).format(new Date(`${GUIDE_REVIEWED_ON}T12:00:00Z`));
   return (
     <main>
-      <section className="bg-[#0c1c2e] text-[#f4f1ea]">
+      <section className="bg-hero text-hero-foreground">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-xs tracking-[0.18em] text-accent uppercase">{copy.nav.germany}</p>
             <h1 className="mt-3 font-serif text-4xl text-balance md:text-5xl">{copy.germany.title}</h1>
-            <p className="mt-4 max-w-xl text-lg leading-8 text-white/75">{copy.germany.lead}</p>
+            <p className="mt-4 max-w-xl text-lg leading-8 text-hero-muted">{copy.germany.lead}</p>
           </div>
           <div className="relative aspect-[16/9] overflow-hidden rounded-3xl">
             <Image src="/photos/germany-autobahn.jpg" alt={copy.phase3.photoGermany} fill className="object-cover object-center" sizes="(min-width: 1024px) 40vw, 100vw" />
+            <div className="pointer-events-none absolute inset-0 bg-[var(--hero-overlay)]" />
           </div>
         </div>
       </section>

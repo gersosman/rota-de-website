@@ -16,7 +16,7 @@ export default async function NotificationsPage() {
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="font-serif text-4xl">Bildirimler</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{unread} okunmamış kayıt. Telegram bağlı değilse başvuru yine burada ve aday listesinde durur.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{unread} okunmamış kayıt. E-posta gitmese de başvuru burada ve aday listesinde durur.</p>
         </div>
         <form action={readNotificationsAction}>
           <Button type="submit" variant="outline" className="h-10">Okundu işaretle</Button>

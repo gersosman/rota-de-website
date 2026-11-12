@@ -4,8 +4,9 @@ import { randomBytes } from "node:crypto";
 import { publicGate } from "@/server/actions/guards";
 import { createAssessmentLead, createContactLead, createJourneyLead, findSubmission, requestDeletion } from "@/server/leads";
 import { allowRate, hashValue } from "@/server/rate-limit";
-import { ceLabel, experienceLabel, src3Label } from "@/lib/domain/pipeline";
-import { drainOutbound, enqueueOutbound } from "@/server/outbound";
+import { contactInbox } from "@/server/mail";
+import { enqueueOutbound, settleOutbound } from "@/server/outbound";
+import type { NoticeState } from "@/lib/outbound-policy";
 import { assessmentSchema, contactSchema, deletionSchema, journeySchema } from "@/lib/validation/assessment";
 
 function failureRef(scope: string, error: unknown): string {
@@ -48,44 +49,33 @@ export async function submitJourney(input: unknown) {
   const parsed = journeySchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, code: "invalid" as const };
   if (parsed.data.companyWebsite) return { ok: true as const, publicCode: null, duplicate: false };
-  const identity = parsed.data.phone?.replace(/\D/g, "") || parsed.data.email?.trim().toLowerCase() || parsed.data.telegramHandle?.replace(/^@/, "").toLowerCase() || parsed.data.fullName;
+  const identity = parsed.data.email.trim().toLowerCase();
   if (!(await allowRate(`journey-person:${hashValue(identity)}`, 8, 60 * 60))) return { ok: false as const, code: "rate" as const };
   try {
     const result = await createJourneyLead(parsed.data);
-    const channels = parsed.data.channels?.length ? parsed.data.channels : parsed.data.contactPreference ? [parsed.data.contactPreference] : [];
-    const email = channels.includes("email") && parsed.data.email?.trim() ? parsed.data.email.trim().toLowerCase() : "";
+    let emailStatus: NoticeState | undefined;
     if (!result.duplicate && result.publicCode) {
-      const text = [
-        "ROTA DE — Yeni başvuru",
-        "",
-        `Başvuru No: ${result.publicCode}`,
-        `Ad Soyad: ${parsed.data.fullName}`,
-        "Kaynak: Web sitesi",
-        `CE: ${ceLabel(parsed.data.ce)}`,
-        `SRC3: ${src3Label(parsed.data.src3)}`,
-        `Deneyim: ${experienceLabel(parsed.data.experience)}`,
-        "",
-        "Admin panelinden görüntüle.",
-      ].join("\n");
+      emailStatus = "failed";
       try {
-        if (email) await enqueueOutbound("email", { to: email, code: result.publicCode });
-        await enqueueOutbound("telegram", { text });
+        const id = await enqueueOutbound("email", {
+          purpose: "application",
+          to: identity,
+          code: result.publicCode,
+        });
+        emailStatus = await settleOutbound(id);
       } catch (error) {
         console.error("outbound_enqueue_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
       }
-      void drainOutbound().catch((error: unknown) => {
-        console.error("outbound_drain_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
-      });
     }
     return {
       ok: true as const,
       publicCode: result.publicCode,
       duplicate: result.duplicate,
-      emailStatus: email ? ("queued" as const) : ("no-email" as const),
+      emailStatus,
     };
   } catch (error) {
     const recovered = await findSubmission(parsed.data.idempotencyKey).catch(() => null);
-    if (recovered) return { ok: true as const, publicCode: recovered, duplicate: true, emailStatus: "no-email" as const };
+    if (recovered) return { ok: true as const, publicCode: recovered, duplicate: true };
     return { ok: false as const, code: "unavailable" as const, ref: failureRef("journey_failed", error) };
   }
 }
@@ -96,31 +86,38 @@ export async function submitContact(input: unknown) {
   const parsed = contactSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, code: "invalid" as const };
   if (parsed.data.companyWebsite) return { ok: true as const, publicCode: null, duplicate: false };
+  const email = parsed.data.email.trim().toLowerCase();
+  if (!(await allowRate(`contact-email:${hashValue(email)}`, 5, 60 * 60))) return { ok: false as const, code: "rate" as const };
   try {
     const result = await createContactLead(parsed.data);
+    let emailStatus: NoticeState | undefined;
     if (!result.duplicate && result.publicCode) {
-      const channels = parsed.data.channels?.length ? parsed.data.channels : [parsed.data.contactPreference];
-      const preference = channels.map((channel) => (channel === "telegram" ? "Telegram" : channel === "phone" ? "Telefon" : "E-posta")).join(", ");
-      const text = [
-        "ROTA DE — Yeni iletişim talebi",
-        "",
-        `Başvuru No: ${result.publicCode}`,
-        `Ad Soyad: ${parsed.data.fullName}`,
-        `Tercih: ${preference}${parsed.data.telegramHandle ? ` (${parsed.data.telegramHandle})` : ""}`,
-        "Durum: Yeni",
-        "",
-        "Mesaj paneldedir. E-posta ve telefon bu bildirime yazılmadı.",
-      ].join("\n");
-      try {
-        await enqueueOutbound("telegram", { text });
-      } catch (error) {
-        console.error("outbound_enqueue_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+      emailStatus = "failed";
+      const inbox = contactInbox();
+      if (inbox) {
+        try {
+          const id = await enqueueOutbound("email", {
+            purpose: "staff",
+            to: inbox,
+            subject: `ROTA DE — ${parsed.data.subject.trim().slice(0, 120)}`,
+            text: [
+              "Yeni iletişim mesajı",
+              "",
+              `Kayıt: ${result.publicCode}`,
+              `Ad soyad: ${parsed.data.fullName.trim()}`,
+              `E-posta: ${email}`,
+              `Konu: ${parsed.data.subject.trim()}`,
+              "",
+              parsed.data.message.trim(),
+            ].join("\n"),
+          });
+          emailStatus = await settleOutbound(id);
+        } catch (error) {
+          console.error("outbound_enqueue_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+        }
       }
-      void drainOutbound().catch((error: unknown) => {
-        console.error("outbound_drain_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
-      });
     }
-    return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate };
+    return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate, emailStatus };
   } catch (error) {
     console.error("contact_failed", error instanceof Error ? error.name : "error");
     return { ok: false as const, code: "unavailable" as const };

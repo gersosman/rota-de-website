@@ -28,7 +28,7 @@ test("telegram welcome matches the public menu and does not promise a visa", () 
   assert.doesNotMatch(text, /iş garantisi|vize onayı/i);
 });
 
-test("journey schema keeps marketing consent separate and requires a contact preference", () => {
+test("journey schema requires an email address and keeps marketing consent separate", () => {
   const missing = journeySchema.safeParse({
     ce: "have",
     src3: "info",
@@ -36,16 +36,30 @@ test("journey schema keeps marketing consent separate and requires a contact pre
     german: "none",
     family: "alone",
     fullName: "Ada Yılmaz",
-    phone: "+49 151 12345678",
-    email: "",
+    email: "aday@example.com",
     city: "Ankara",
-    contactPreference: "telegram",
     marketingOptIn: false,
     consent: true,
     disclaimerAck: false,
     idempotencyKey: "journey-key-1",
   });
   assert.equal(missing.success, false);
+  const noEmail = journeySchema.safeParse({
+    ce: "have",
+    src3: "have",
+    experience: "y5_plus",
+    german: "none",
+    family: "alone",
+    fullName: "Ada Yılmaz",
+    email: "",
+    city: "Ankara",
+    channels: ["telegram"],
+    marketingOptIn: false,
+    consent: true,
+    disclaimerAck: true,
+    idempotencyKey: "journey-key-1",
+  });
+  assert.equal(noEmail.success, false);
   const parsed = journeySchema.safeParse({
     ce: "have",
     src3: "have",
@@ -53,10 +67,8 @@ test("journey schema keeps marketing consent separate and requires a contact pre
     german: "none",
     family: "alone",
     fullName: "Ada Yılmaz",
-    phone: "+49 151 12345678",
-    email: "",
+    email: "aday@example.com",
     city: "Ankara",
-    contactPreference: "telegram",
     note: "Kısa not",
     marketingOptIn: false,
     consent: true,

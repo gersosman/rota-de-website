@@ -7,7 +7,7 @@ const links = [
   ["Adaylar", "/admin/adaylar"],
   ["Bildirimler", "/admin/bildirimler"],
   ["İletişim", "/admin/iletisim"],
-  ["Telegram", "/admin/mesajlar"],
+  ["Telegram kapalı", "/admin/telegram"],
   ["İşverenler", "/admin/isverenler"],
   ["Yorumlar", "/admin/yorumlar"],
   ["İçerik", "/admin/icerik"],

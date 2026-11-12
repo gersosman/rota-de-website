@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { submitJourney } from "@/server/actions/intake";
 import { CityField } from "@/components/forms/city-field";
-import { ChannelPicker, type ContactChannel } from "@/components/forms/channel-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,12 +53,13 @@ type Copy = {
   emailSkipped: string;
   emailFailed: string;
   emailQueued: string;
+  emailPending: string;
+  papersMail: string;
   noEmail: string;
   channelTitle: string;
   channelHint: string;
   channelNeed: string;
   cityHint: string;
-  telegramUser: string;
   reference: string;
   duplicate: string;
   name: string;
@@ -70,7 +70,6 @@ type Copy = {
   preference: string;
   channelEmail: string;
   channelPhone: string;
-  channelTelegram: string;
   marketing: string;
   consent: string;
   ack: string;
@@ -102,11 +101,8 @@ export function PrecheckWizard({
     german: initial.german === "none" || initial.german === "beginner" || initial.german === "mid" || initial.german === "good" ? initial.german : "",
     availability: "",
     fullName: "",
-    phone: "",
     city: "",
     email: "",
-    telegram: "",
-    channels: [] as ContactChannel[],
     note: "",
     marketing: false,
     consent: false,
@@ -130,12 +126,9 @@ export function PrecheckWizard({
     contact:
       form.fullName.trim().length >= 3 &&
       form.city.trim().length >= 2 &&
-      form.channels.length > 0 &&
+      form.email.includes("@") &&
       form.consent &&
-      form.ack &&
-      (!form.channels.includes("phone") || form.phone.replace(/\D/g, "").length >= 8) &&
-      (!form.channels.includes("email") || form.email.includes("@")) &&
-      (!form.channels.includes("telegram") || /^@?[A-Za-z0-9_]{5,32}$/.test(form.telegram.trim())),
+      form.ack,
     summary: true,
   };
 
@@ -162,12 +155,10 @@ export function PrecheckWizard({
         residence: form.residence,
         availability: form.availability,
         fullName: form.fullName,
-        phone: form.channels.includes("phone") ? form.phone : "",
-        email: form.channels.includes("email") ? form.email.trim() : "",
-        telegramHandle: form.channels.includes("telegram") ? form.telegram.trim() : "",
+        email: form.email.trim(),
         city: form.city,
-        channels: form.channels,
-        contactPreference: form.channels[0],
+        channels: ["email"],
+        contactPreference: "email",
         note: form.note,
         marketingOptIn: form.marketing,
         consent: true,
@@ -198,7 +189,15 @@ export function PrecheckWizard({
   }
 
   if (done) {
-    const mail = done.emailStatus === "sent" ? copy.emailSent : done.emailStatus === "failed" ? copy.emailFailed : done.emailStatus === "skipped" ? copy.emailSkipped : done.emailStatus === "queued" ? copy.emailQueued : copy.noEmail;
+    const mail = done.duplicate
+      ? ""
+      : done.emailStatus === "sent"
+        ? copy.emailSent
+        : done.emailStatus === "pending"
+          ? copy.emailPending
+          : done.emailStatus === "failed"
+            ? copy.emailFailed
+            : "";
     return (
       <section className="mx-auto max-w-xl px-4 py-16">
         <p className="font-serif text-4xl leading-tight">{copy.successTitle}</p>
@@ -260,17 +259,8 @@ export function PrecheckWizard({
                 hint={copy.cityHint}
                 countryLabel={{ DE: copy.countries.DE ?? "DE", TR: copy.countries.TR ?? "TR" }}
               />
-              <ChannelPicker
-                value={form.channels}
-                onChange={(value) => set("channels", value)}
-                title={copy.channelTitle}
-                hint={copy.channelHint}
-                required={copy.channelNeed}
-                labels={{ phone: copy.channelPhone, email: copy.channelEmail, telegram: copy.channelTelegram }}
-              />
-              {form.channels.includes("phone") ? <Input value={form.phone} onChange={(event) => set("phone", event.target.value)} placeholder={copy.phone} className="h-12" inputMode="tel" autoComplete="tel" /> : null}
-              {form.channels.includes("email") ? <Input value={form.email} onChange={(event) => set("email", event.target.value)} placeholder={copy.email} className="h-12" type="email" autoComplete="email" /> : null}
-              {form.channels.includes("telegram") ? <Input value={form.telegram} onChange={(event) => set("telegram", event.target.value)} placeholder={copy.telegramUser} className="h-12" autoComplete="off" /> : null}
+              <Input value={form.email} onChange={(event) => set("email", event.target.value)} placeholder={copy.email} className="h-12" type="email" autoComplete="email" required />
+              <p className="text-sm leading-6 text-muted-foreground">{copy.papersMail}</p>
               <Textarea value={form.note} onChange={(event) => set("note", event.target.value)} placeholder={copy.note} />
               <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={form.consent} onChange={(event) => set("consent", event.target.checked)} />{copy.consent}</label>
               <label className="flex gap-3 text-sm leading-6"><input type="checkbox" checked={form.ack} onChange={(event) => set("ack", event.target.checked)} />{copy.ack}</label>
@@ -290,7 +280,7 @@ export function PrecheckWizard({
               <li>{copy.germanTitle} {form.german === "none" ? copy.germanNone : form.german === "beginner" ? copy.germanStart : form.german === "mid" ? copy.germanMid : copy.germanGood}</li>
               <li>{copy.whenTitle} {form.availability === "now" ? copy.whenNow : form.availability === "m1_3" ? copy.when13 : form.availability === "m3_6" ? copy.when36 : copy.whenLater}</li>
               <li>{form.fullName} · {form.city}</li>
-              <li>{form.channels.map((channel) => (channel === "phone" ? copy.channelPhone : channel === "email" ? copy.channelEmail : copy.channelTelegram)).join(", ")}</li>
+              <li>{form.email}</li>
             </ul>
           </div>
         ) : null}

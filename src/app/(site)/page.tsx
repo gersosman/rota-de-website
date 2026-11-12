@@ -1,15 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { TrackAnchor } from "@/components/site/track-anchor";
 import { getDictionary } from "@/lib/i18n";
-import { publicBotLink } from "@/server/telegram/inbox";
 
 export const instant = false;
 
 export default async function HomePage() {
   const copy = await getDictionary();
   const text = copy.phase3;
-  const bot = await publicBotLink();
   const paths = [
     { href: "/almanyada-soforluk", title: copy.nav.germany, body: copy.germany.lead },
     { href: "/nasil-calisir", title: copy.nav.how, body: copy.how.lead },
@@ -30,11 +27,6 @@ export default async function HomePage() {
               <Link href="/iletisim" className="inline-flex h-12 items-center justify-center rounded-full border border-hero-border px-5 text-sm">
                 {text.contactCta}
               </Link>
-              {bot ? (
-                <TrackAnchor href={bot} event="telegram_click" className="inline-flex h-12 items-center justify-center px-2 text-sm text-hero-muted">
-                  {text.telegramCta}
-                </TrackAnchor>
-              ) : null}
             </div>
           </div>
           <div className="relative aspect-[16/10] overflow-hidden rounded-[2rem]">
@@ -68,6 +60,17 @@ export default async function HomePage() {
           <h2 className="font-serif text-3xl leading-snug text-balance">{text.salaryTitle}</h2>
           <p className="mt-4 text-sm leading-6 text-band-foreground/75">{text.salaryNote}</p>
           <Link href="/almanyada-soforluk#maas" className="mt-6 inline-flex text-sm font-medium text-accent">{copy.nav.germany}</Link>
+        </div>
+      </section>
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+          <div className="max-w-2xl">
+            <h2 className="font-serif text-4xl leading-tight text-balance md:text-5xl">{copy.home.contactTitle}</h2>
+            <p className="mt-4 text-base leading-7 text-muted-foreground">{copy.home.contactBody}</p>
+            <Link href="/iletisim" className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent px-6 text-sm font-medium text-accent-foreground sm:w-auto">
+              {copy.home.contactButton}
+            </Link>
+          </div>
         </div>
       </section>
       <section className="mx-auto max-w-3xl px-4 py-14">

@@ -79,7 +79,7 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
           <option value="">Kaynak</option>
           <option value="website_assessment">Site</option>
           <option value="whatsapp">Eski kanal</option>
-          <option value="telegram">Telegram</option>
+          <option value="telegram">Eski Telegram kayıtları</option>
           <option value="manual">Elle</option>
         </select>
         <select name="german" defaultValue={german} className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
@@ -104,8 +104,6 @@ export default async function LeadsPage(props: { searchParams: Promise<Record<st
           <select name="contactPreference" defaultValue="unspecified" className="h-10 rounded-lg border border-input bg-card px-2 text-sm">
             <option value="unspecified">İletişim tercihi yok</option>
             <option value="email">E-posta</option>
-            <option value="telegram">Telegram</option>
-            <option value="instagram">Instagram</option>
             <option value="phone">Telefon</option>
           </select>
           <Input name="notes" placeholder="İç not" className="h-10 md:col-span-2" />

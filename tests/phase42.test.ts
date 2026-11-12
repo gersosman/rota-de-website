@@ -14,10 +14,8 @@ const legacy = {
   german: "none" as const,
   family: "alone" as const,
   fullName: "Ada Yılmaz",
-  phone: "+49 151 12345678",
-  email: "",
+  email: "aday@example.com",
   city: "Ankara",
-  contactPreference: "telegram" as const,
   marketingOptIn: false,
   consent: true as const,
   disclaimerAck: true as const,
@@ -34,32 +32,13 @@ test("city suggestions match German and Turkish names without an external lookup
   assert.equal(suggestCities("ANK").some((city) => city.n === "Ankara"), true);
 });
 
-test("a journey can name one channel or several, and the older payload still validates", () => {
+test("a journey requires a real email and ignores a telegram-only payload", () => {
   assert.equal(journeySchema.safeParse(legacy).success, true);
-  const emailOnly = journeySchema.safeParse({
-    ...legacy,
-    phone: "",
-    email: "aday@example.com",
-    channels: ["email"],
-    contactPreference: "email",
-  });
-  assert.equal(emailOnly.success, true);
-  const both = journeySchema.safeParse({
-    ...legacy,
-    email: "aday@example.com",
-    telegramHandle: "@adayrota",
-    channels: ["phone", "telegram"],
-  });
-  assert.equal(both.success, true);
-  assert.equal(journeySchema.safeParse({ ...legacy, channels: [], contactPreference: undefined }).success, false);
-  assert.equal(
-    journeySchema.safeParse({ ...legacy, phone: "", channels: ["email"], email: "eksik" }).success,
-    false,
-  );
-  assert.equal(
-    journeySchema.safeParse({ ...legacy, channels: ["telegram"], telegramHandle: "a" }).success,
-    false,
-  );
+  assert.equal(journeySchema.safeParse({ ...legacy, email: "" }).success, false);
+  assert.equal(journeySchema.safeParse({ ...legacy, email: "eksik" }).success, false);
+  const stray = journeySchema.safeParse({ ...legacy, channels: ["telegram"], telegramHandle: "a" });
+  assert.equal(stray.success, true);
+  if (stray.success) assert.equal("telegramHandle" in stray.data, false);
 });
 
 test("tracking accepts the telegram username when no phone was stored", () => {

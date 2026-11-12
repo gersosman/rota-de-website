@@ -2,13 +2,13 @@
 
 Türkiye'den Almanya'ya profesyonel tır şoförlüğü düşünen adaylar için danışmanlık ve müşteri yönetim platformu.
 
-Bu depo Faz 1–4.2'yi içerir: herkese açık site, başvuru takip, yönetici paneli, CRM, adım adım ön değerlendirme, gündüz/gece teması ve Telegram. WhatsApp yoktur. Yapay zekâ ancak `OPENAI_API_KEY` tanımlıysa cevap verir. Anahtarı olmayan kanal **kurulum bekliyor** görünür.
+Bu depo herkese açık site, başvuru takip, yönetici paneli, CRM ve adım adım ön değerlendirme içerir. İletişim kanalı e-postadır. Telegram botu ve WhatsApp kapalıdır; eski tablolar durur. Yapay zekâ ancak `OPENAI_API_KEY` tanımlıysa cevap verir.
 
 ## Ne işe yarar
 
-Ziyaretçi ücretsiz ön değerlendirmeyi adım adım doldurur. Şehir alanı, proje içindeki GeoNames Almanya ve Türkiye yerleşim listesinden öneri sunar (CC BY 4.0); yazım sırasında dış bir servise istek gitmez. İletişim için telefon, e-posta ve Telegram ayrı ayrı veya birlikte seçilir. Sistem `ROTA-yıl-kod` biçiminde tahmin edilmesi zor bir başvuru numarası üretir. Kayıt, e-posta ve Telegram bildiriminden bağımsızdır: bildirim kurulmamışsa veya gönderilemezse başvuru silinmez. Aday bu numarayı, başvuruda yazdığı e-posta, telefon veya Telegram kullanıcı adıyla `/basvuru-takip` ekranından sorgular. Yönetici dosyayı ilk kez açınca durum “Başvuru Alındı”ndan “Başvurunuz İnceleniyor”a geçer. Bu bir vize, oturum veya iş kararı değildir.
+Ziyaretçi ücretsiz ön değerlendirmeyi adım adım doldurur. Şehir alanı, proje içindeki GeoNames Almanya ve Türkiye yerleşim listesinden öneri sunar (CC BY 4.0); yazım sırasında dış bir servise istek gitmez. Başvuruda e-posta zorunludur. Sistem `ROTA-yıl-kod` biçiminde tahmin edilmesi zor bir başvuru numarası üretir. Kayıt, e-posta bildiriminden bağımsızdır: mektup kurulmamışsa veya gönderilemezse başvuru silinmez. Aday bu numarayı, başvuruda yazdığı e-posta ile `/basvuru-takip` ekranından sorgular. Eski kayıtlarda telefon da doğrulayıcı olarak durur. Yönetici dosyayı ilk kez açınca durum “Başvuru Alındı”ndan “Başvurunuz İnceleniyor”a geçer. Bu bir vize, oturum veya iş kararı değildir.
 
-Site Türkçe ve Almancadır. Yönetim paneli Türkçedir. Kişisel telefon yayımlanmaz. Telegram, bot bağlı değilken herkese açık bir bağlantı göstermez. Yapay zekâ asistanı model anahtarı olmadan cevap uydurmaz.
+Site Türkçe ve Almancadır. Yönetim paneli Türkçedir. Kişisel telefon ve kişisel e-posta yayımlanmaz. Yönetici duyurusu `CONTACT_NOTIFY_EMAIL` ile gider. Yapay zekâ asistanı model anahtarı olmadan cevap uydurmaz.
 
 Metinler kısa ve kurumsal kalır. “Ne yapar, ne yapmaz”, “İnsan inceler” ve belirsiz “bir süre sonra deneyin” kalıpları kullanılmaz. Sunulmayan bir belge incelemesi veya garanti yazılmaz. Gündüz ve gece renkleri `globals.css` içindeki ortak belirteçlerden gelir; hero bölümü de bu belirteçleri kullanır.
 

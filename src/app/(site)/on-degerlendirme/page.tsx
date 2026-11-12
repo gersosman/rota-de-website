@@ -25,7 +25,6 @@ export default async function AssessmentPage(props: { searchParams: Promise<Reco
           preference: text.journey.preference,
           channelEmail: text.journey.channelEmail,
           channelPhone: text.journey.channelPhone,
-          channelTelegram: text.journey.channelTelegram,
           marketing: text.journey.marketingOpt,
           consent: copy.assessment.consent,
           ack: copy.assessment.ack,

@@ -4,52 +4,39 @@ import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { contactSchema } from "../src/lib/validation/assessment.ts";
 
-test("contact schema stores the message fields and rejects a missing consent", () => {
+test("contact schema requires email, subject and consent", () => {
   const parsed = contactSchema.safeParse({
     fullName: "Ada Yılmaz",
     email: "ada@example.com",
+    subject: "Süreç",
     message: "Süreci sormak istiyorum.",
-    contactPreference: "telegram",
-    telegramHandle: "adayrota",
     consent: true,
     idempotencyKey: "contact-key-1",
   });
   assert.equal(parsed.success, true);
-  const missingHandle = contactSchema.safeParse({
+  const noSubject = contactSchema.safeParse({
     fullName: "Ada Yılmaz",
     email: "ada@example.com",
+    subject: "a",
     message: "Süreci sormak istiyorum.",
-    contactPreference: "telegram",
     consent: true,
     idempotencyKey: "contact-key-1",
   });
-  assert.equal(missingHandle.success, false);
+  assert.equal(noSubject.success, false);
   const denied = contactSchema.safeParse({
     fullName: "Ada Yılmaz",
     email: "ada@example.com",
+    subject: "Süreç",
     message: "Süreci sormak istiyorum.",
-    contactPreference: "telegram",
     consent: false,
     idempotencyKey: "contact-key-1",
   });
   assert.equal(denied.success, false);
-  const phoneOnly = contactSchema.safeParse({
-    fullName: "Ada Yılmaz",
-    email: "",
-    message: "Süreci sormak istiyorum.",
-    contactPreference: "phone",
-    channels: ["phone"],
-    phone: "+49 151 12345678",
-    consent: true,
-    idempotencyKey: "contact-key-2",
-  });
-  assert.equal(phoneOnly.success, true);
   const badEmail = contactSchema.safeParse({
     fullName: "Ada Yılmaz",
     email: "eksik",
+    subject: "Süreç",
     message: "Süreci sormak istiyorum.",
-    contactPreference: "email",
-    channels: ["email"],
     consent: true,
     idempotencyKey: "contact-key-3",
   });

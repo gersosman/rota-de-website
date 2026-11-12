@@ -21,9 +21,7 @@ type Copy = {
   email: string;
   preference: string;
   note: string;
-  channelTelegram: string;
   channelEmail: string;
-  channelPhone: string;
   marketingOpt: string;
   exUnder: string;
   ex13: string;
@@ -52,7 +50,6 @@ type Copy = {
   consent: string;
   ack: string;
   errors: { invalid: string; rate: string; origin: string; unavailable: string };
-  telegramPending: string;
 };
 
 type Step = "ce" | "src3" | "experience" | "german" | "family" | "follow" | "contact" | "summary";
@@ -62,11 +59,9 @@ const ORDER: Step[] = ["ce", "src3", "experience", "german", "family", "follow",
 export function JourneyForm({
   copy,
   initial,
-  telegramHref,
 }: {
   copy: Copy;
   initial: Record<string, string>;
-  telegramHref: string | null;
 }) {
   const [step, setStep] = useState<Step>("ce");
   const [pending, setPending] = useState(false);
@@ -85,7 +80,7 @@ export function JourneyForm({
     phone: "",
     email: "",
     city: "",
-    contactPreference: "telegram",
+    contactPreference: "email",
     note: "",
     marketingOptIn: false,
     consent: false,
@@ -123,7 +118,7 @@ export function JourneyForm({
     if (step === "german") return Boolean(values.german);
     if (step === "family") return Boolean(values.family);
     if (step === "follow") return Boolean(values.spouseGerman);
-    if (step === "contact") return values.fullName.trim().length >= 3 && values.phone.trim().length >= 8 && values.city.trim().length >= 2;
+    if (step === "contact") return values.fullName.trim().length >= 3 && values.email.includes("@") && values.city.trim().length >= 2;
     return values.consent && values.disclaimerAck;
   }
 
@@ -161,13 +156,7 @@ export function JourneyForm({
         <p className="font-serif text-4xl text-balance">{copy.successTitle}</p>
         <p className="mt-4 leading-7 text-muted-foreground">{copy.successBody}</p>
         {done ? <p className="mt-6 font-mono text-lg">{done}</p> : null}
-        {telegramHref ? (
-          <a href={telegramHref} onClick={() => track("telegram_click")} className="mt-8 inline-flex h-12 items-center rounded-full bg-accent px-5 text-sm font-medium text-accent-foreground">
-            Telegram
-          </a>
-        ) : (
-          <p className="mt-8 text-sm text-muted-foreground">{copy.telegramPending}</p>
-        )}
+        <p className="mt-8 text-sm text-muted-foreground">{copy.papers}</p>
       </section>
     );
   }
@@ -226,17 +215,8 @@ export function JourneyForm({
               {step === "contact" ? (
                 <>
                   <input aria-label={copy.name} placeholder={copy.name} value={values.fullName} onChange={(event) => setValues({ ...values, fullName: event.target.value })} className="h-12 rounded-2xl border border-border bg-card px-4 text-base" />
-                  <input aria-label={copy.phone} placeholder={copy.phone} inputMode="tel" autoComplete="tel" value={values.phone} onChange={(event) => setValues({ ...values, phone: event.target.value })} className="h-12 rounded-2xl border border-border bg-card px-4 text-base" />
                   <input aria-label={copy.city} placeholder={copy.city} value={values.city} onChange={(event) => setValues({ ...values, city: event.target.value })} className="h-12 rounded-2xl border border-border bg-card px-4 text-base" />
-                  <input aria-label={copy.email} placeholder={copy.email} type="email" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} className="h-12 rounded-2xl border border-border bg-card px-4 text-base" />
-                  <label className="text-sm font-medium">
-                    {copy.preference}
-                    <select aria-label={copy.preference} value={values.contactPreference} onChange={(event) => setValues({ ...values, contactPreference: event.target.value })} className="mt-2 h-12 w-full rounded-2xl border border-border bg-card px-4 text-base">
-                      <option value="telegram">{copy.channelTelegram}</option>
-                      <option value="email">{copy.channelEmail}</option>
-                      <option value="phone">{copy.channelPhone}</option>
-                    </select>
-                  </label>
+                  <input aria-label={copy.email} placeholder={copy.email} type="email" required value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} className="h-12 rounded-2xl border border-border bg-card px-4 text-base" />
                   <textarea aria-label={copy.note} placeholder={copy.note} value={values.note} maxLength={500} onChange={(event) => setValues({ ...values, note: event.target.value })} className="min-h-24 rounded-2xl border border-border bg-card px-4 py-3 text-base" />
                   <label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={values.marketingOptIn} onChange={(event) => setValues({ ...values, marketingOptIn: event.target.checked })} />{copy.marketingOpt}</label>
                   <input tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" value={values.companyWebsite} onChange={(event) => setValues({ ...values, companyWebsite: event.target.value })} />

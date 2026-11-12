@@ -289,14 +289,13 @@ export async function createTelegramLead(input: {
 }
 
 function selectedChannels(input: JourneyInput) {
-  const channels = input.channels?.length ? [...new Set(input.channels)] : input.contactPreference ? [input.contactPreference] : [];
-  const legacy = !input.channels?.length;
-  const phone = (channels.includes("phone") || legacy) && input.phone?.trim() ? input.phone.trim() : null;
-  const email = channels.includes("email") && input.email?.trim() ? input.email.trim().toLowerCase() : null;
-  const telegram = channels.includes("telegram") && input.telegramHandle?.trim()
-    ? `@${input.telegramHandle.trim().replace(/^@/, "")}`
-    : null;
-  return { channels, phone, email, telegram, preference: channels[0] ?? "phone" };
+  return {
+    channels: ["email"] as const,
+    phone: null,
+    email: input.email.trim().toLowerCase(),
+    telegram: null,
+    preference: "email" as const,
+  };
 }
 
 export async function findRecentMatch(input: { fullName: string; phone: string | null; email: string | null; telegram: string | null }) {
@@ -394,12 +393,6 @@ export async function createJourneyLead(input: JourneyInput) {
       leadId,
       CONSENT_VERSION,
     ]);
-    if (contact.channels.includes("telegram")) {
-      await query(
-        `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'telegram_service', $2, true)`,
-        [leadId, CONSENT_VERSION],
-      );
-    }
     await query(
       `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'marketing', $2, $3)`,
       [leadId, CONSENT_VERSION, input.marketingOptIn],
@@ -478,16 +471,15 @@ export async function createContactLead(input: ContactInput) {
   const existing = await findSubmission(input.idempotencyKey);
   if (existing) return { publicCode: existing, duplicate: true as const };
 
-  const channels = input.channels?.length ? input.channels : [input.contactPreference];
-  const email = input.email?.includes("@") ? input.email.toLowerCase() : null;
-  const preference = channels[0] ?? input.contactPreference;
+  const email = input.email.trim().toLowerCase();
+  const storedMessage = `Konu: ${input.subject.trim()}\n\n${input.message.trim()}`;
   return withTransaction(async (query) => {
     const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
-      `insert into leads (public_code, full_name, email, contact_preference, phone, telegram_handle, contact_channels, source, status)
-       values ($1, $2, $3, $4, $5, $6, $7::jsonb, 'website_contact', 'NEW')
+      `insert into leads (public_code, full_name, email, contact_preference, contact_channels, source, status)
+       values ($1, $2, $3, 'email', '["email"]'::jsonb, 'website_contact', 'NEW')
        returning id`,
-      [publicCode, input.fullName, email, preference, input.phone ?? null, input.telegramHandle ?? null, JSON.stringify(channels)],
+      [publicCode, input.fullName, email],
     );
     const leadId = leads[0]?.id;
     if (!leadId) throw new Error("lead_insert_failed");
@@ -497,7 +489,7 @@ export async function createContactLead(input: ContactInput) {
     );
     await query(
       `insert into messages (conversation_id, direction, body, category) values ($1, 'inbound', $2, 'contact')`,
-      [conversations[0]?.id, input.message],
+      [conversations[0]?.id, storedMessage],
     );
     await query(
       `insert into lead_status_events (lead_id, to_status, note) values ($1, 'NEW', 'İletişim formu')`,
@@ -505,8 +497,8 @@ export async function createContactLead(input: ContactInput) {
     );
     await query(
       `insert into contact_messages (lead_id, full_name, email, message, contact_preference, status)
-       values ($1, $2, $3, $4, $5, 'new')`,
-      [leadId, input.fullName, email, input.message, preference],
+       values ($1, $2, $3, $4, 'email', 'new')`,
+      [leadId, input.fullName, email, storedMessage],
     );
     await query(
       `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'contact', $2, true)`,

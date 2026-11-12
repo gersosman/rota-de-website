@@ -156,7 +156,7 @@ export const guide: Record<"tr" | "de", GuideSection[]> = {
       paragraphs: [
         "ROTA DE başvuruyu alır, sürüş geçmişini ve hedefi okur, uygunluk görürse kayıtlı gerçek bir işveren fırsatıyla eşleştirmeyi konuşur, görüşme ve sözleşme adımlarını izler.",
         "Ehliyet ve meslekî yeterlilik sürecini resmi kaynaklara dayanarak açıklar. Çalışma ve vize başvurusunda adayın elindeki bilgiyi düzenler. Resmî kurum, işveren veya vize mercii değildir.",
-        "İlk başvuruda pasaport, kimlik veya belge fotoğrafı istenmez. Destek ekibi, seçilen kanaldan — Telegram, e-posta veya telefon — döner.",
+        "İlk başvuruda pasaport, kimlik veya belge fotoğrafı istenmez. Destek ekibi e-posta ile döner. Gerekli belgeler daha sonra e-posta ile istenir.",
       ],
       sourceLabel: "§ 24a BeschV",
       sourceUrl: law,

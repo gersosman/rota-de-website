@@ -26,9 +26,6 @@ type Copy = {
   options: Record<string, string>;
 };
 
-const fieldClass =
-  "h-11 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40";
-
 export function AssessmentForm({ copy }: { copy: Copy }) {
   const [step, setStep] = useState(0);
   const [pending, setPending] = useState(false);
@@ -194,17 +191,7 @@ export function AssessmentForm({ copy }: { copy: Copy }) {
               <Label htmlFor="email">{copy.options.emailAddress}</Label>
               <Input id="email" type="email" className="h-11" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} required />
             </div>
-            <label className="grid gap-1.5 text-sm">
-              {copy.options.preference}
-              <select className={fieldClass} value={values.contactPreference} onChange={(event) => setValues({ ...values, contactPreference: event.target.value })}>
-                {["email", "telegram", "instagram", "phone"].map((item) => (
-                  <option key={item} value={item}>{copy.options[item]}</option>
-                ))}
-              </select>
-            </label>
-            <Input className="h-11" placeholder={copy.options.phoneOptional} value={values.phone} onChange={(event) => setValues({ ...values, phone: event.target.value })} />
-            <Input className="h-11" placeholder={copy.options.telegramOptional} value={values.telegramHandle} onChange={(event) => setValues({ ...values, telegramHandle: event.target.value })} />
-            <Input className="h-11" placeholder={copy.options.instagramOptional} value={values.instagramHandle} onChange={(event) => setValues({ ...values, instagramHandle: event.target.value })} />
+            <p className="text-sm text-muted-foreground">{copy.options.email}</p>
             <label className="flex items-start gap-3 text-sm leading-6">
               <input type="checkbox" className="mt-1" checked={values.consent} onChange={(event) => setValues({ ...values, consent: event.target.checked })} />
               {copy.consent}

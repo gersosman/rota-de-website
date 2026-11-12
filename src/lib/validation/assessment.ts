@@ -53,24 +53,7 @@ export const assessmentSchema = z
 
 export type AssessmentInput = z.infer<typeof assessmentSchema>;
 
-const phoneField = z
-  .string()
-  .trim()
-  .min(8)
-  .max(20)
-  .refine((value) => {
-    const digits = value.replace(/\D/g, "");
-    return digits.length >= 8 && digits.length <= 15;
-  }, "phone");
-
 export const journeyChannels = ["phone", "email", "telegram"] as const;
-
-const handleField = z
-  .string()
-  .trim()
-  .max(40)
-  .optional()
-  .refine((value) => !value || /^@?[A-Za-z0-9_]{5,32}$/.test(value), "telegram");
 
 export const journeySchema = z
   .object({
@@ -85,11 +68,10 @@ export const journeySchema = z
     childrenAges: z.string().trim().max(80).optional(),
     fullName: z.string().trim().min(3).max(120),
     phone: z.string().trim().max(20).optional(),
-    email: z.union([z.literal(""), z.email().max(180)]).optional(),
+    email: z.email().max(180),
     city: z.string().trim().min(2).max(80),
     channels: z.array(z.enum(journeyChannels)).max(3).optional(),
     contactPreference: z.enum(journeyChannels).optional(),
-    telegramHandle: handleField,
     note: z.string().trim().max(500).optional(),
     marketingOptIn: z.boolean(),
     consent: z.literal(true),
@@ -101,50 +83,19 @@ export const journeySchema = z
     if (value.family !== "alone" && !value.spouseGerman) {
       context.addIssue({ code: "custom", path: ["spouseGerman"], message: "required" });
     }
-    const modern = Boolean(value.channels?.length);
-    const channels = modern ? (value.channels ?? []) : value.contactPreference ? [value.contactPreference] : [];
-    if (channels.length === 0) {
-      context.addIssue({ code: "custom", path: ["channels"], message: "required" });
-    }
-    const phoneRequired = channels.includes("phone") || !modern;
-    if (phoneRequired && !phoneField.safeParse(value.phone ?? "").success) {
-      context.addIssue({ code: "custom", path: ["phone"], message: "phone" });
-    }
-    if (channels.includes("email") && !value.email?.includes("@")) {
-      context.addIssue({ code: "custom", path: ["email"], message: "email" });
-    }
-    if (modern && channels.includes("telegram") && !/^@?[A-Za-z0-9_]{5,32}$/.test(value.telegramHandle ?? "")) {
-      context.addIssue({ code: "custom", path: ["telegramHandle"], message: "telegram" });
-    }
   });
 
 export type JourneyInput = z.infer<typeof journeySchema>;
 
-export const contactSchema = z
-  .object({
-    fullName: z.string().trim().min(3).max(120),
-    email: z.union([z.literal(""), z.email().max(180)]).optional(),
-    message: z.string().trim().min(10).max(4000),
-    contactPreference: z.enum(contactPreferences),
-    channels: z.array(z.enum(journeyChannels)).max(3).optional(),
-    phone: optionalHandle,
-    telegramHandle: optionalHandle,
-    consent: z.literal(true),
-    idempotencyKey: z.string().trim().min(8).max(80),
-    companyWebsite: z.string().max(200).optional(),
-  })
-  .superRefine((value, context) => {
-    const channels = value.channels?.length ? value.channels : [value.contactPreference];
-    if (channels.includes("phone") && !phoneField.safeParse(value.phone ?? "").success) {
-      context.addIssue({ code: "custom", path: ["phone"], message: "phone" });
-    }
-    if (channels.includes("email") && !value.email?.includes("@")) {
-      context.addIssue({ code: "custom", path: ["email"], message: "email" });
-    }
-    if (channels.includes("telegram") && !/^@?[A-Za-z0-9_]{5,32}$/.test(value.telegramHandle ?? "")) {
-      context.addIssue({ code: "custom", path: ["telegramHandle"], message: "telegram" });
-    }
-  });
+export const contactSchema = z.object({
+  fullName: z.string().trim().min(3).max(120),
+  email: z.email().max(180),
+  subject: z.string().trim().min(3).max(160),
+  message: z.string().trim().min(10).max(4000),
+  consent: z.literal(true),
+  idempotencyKey: z.string().trim().min(8).max(80),
+  companyWebsite: z.string().max(200).optional(),
+});
 
 export const trackLookupSchema = z.object({
   code: z.string().trim().min(8).max(40),

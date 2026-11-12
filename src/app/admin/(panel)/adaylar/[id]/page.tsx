@@ -27,7 +27,7 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
   const facts = [
     ["İletişim kanalları", lead.contactChannels.length ? lead.contactChannels.join(", ") : lead.contactPreference],
     ["Telefon", lead.phone || "—"],
-    ["Telegram", lead.telegramHandle || "—"],
+    ...(lead.telegramHandle ? [["Eski Telegram kullanıcı adı", lead.telegramHandle] as const] : []),
     ["Instagram", lead.instagramHandle || "—"],
     ["Ülke", lead.country || "—"],
     ["Yaş aralığı", lead.ageRange || "—"],
@@ -77,7 +77,7 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
             ))}
           </dl>
           {lead.notes ? <p className="mt-4 text-sm leading-6">{lead.notes}</p> : null}
-          <p className="mt-4 text-sm text-muted-foreground">Belge yükleme bu aşamada kapalı. İlk kayıt evrak istemez.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Belge yükleme kapalı. Gerekli belgeler e-posta ile istenir.</p>
           {suggestions.length > 0 ? (
             <div className="mt-4 rounded-xl bg-muted p-3 text-sm">
               <p>Aynı telefonla başka dosya var. Otomatik birleştirilmedi.</p>
@@ -213,10 +213,10 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
             <ul className="mt-2 space-y-2 text-sm">
               {lead.conversations.map((item) => {
                 const row = item as { id: string; channel: string; status: string; message_count: number; external_thread_id: string | null };
-                const href = row.channel === "telegram" && row.external_thread_id ? `/admin/telegram?chat=${encodeURIComponent(row.external_thread_id)}` : null;
+                const label = row.channel === "telegram" ? "Eski Telegram kaydı" : row.channel;
                 return (
                   <li key={row.id}>
-                    {href ? <Link href={href} className="text-accent">{row.channel}</Link> : row.channel}
+                    {label}
                     {" · "}{row.status} · {num(row.message_count)} mesaj
                   </li>
                 );

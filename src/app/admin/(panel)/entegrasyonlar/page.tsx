@@ -29,11 +29,10 @@ export default async function IntegrationsPage() {
     <main className="mx-auto max-w-3xl">
       <h1 className="font-serif text-4xl">Entegrasyonlar</h1>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Anahtar değerleri veritabanında ve tarayıcıda tutulmaz. Telegram ancak token doğrulanıp webhook kurulunca bağlı görünür.
+        Anahtar değerleri veritabanında ve tarayıcıda tutulmaz. Telegram kanalı kapalıdır. Yeni bildirim e-posta ile gider.
       </p>
       <p className="mt-3">
-        <Link href="/admin/telegram" className="text-sm text-accent">Telegram masasını aç</Link>
-        <Link href="/admin/mesajlar" className="ml-4 text-sm text-accent">Mesaj kutusu</Link>
+        <Link href="/admin/telegram" className="text-sm text-accent">Telegram durumu: devre dışı</Link>
       </p>
       <ul className="mt-6 space-y-3">
         <li className="rounded-2xl border border-border bg-card p-4">
@@ -49,23 +48,31 @@ export default async function IntegrationsPage() {
             <h2 className="font-medium">E-posta</h2>
             <span className="rounded-full bg-muted px-2 py-1 text-xs">{mail ? "Gönderim hazır" : "Kurulum bekleniyor"}</span>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">RESEND_API_KEY ve MAIL_FROM birlikte yoksa başvuru numarası yalnız ekranda kalır. Kayıt silinmez.</p>
+          <p className="mt-2 text-sm text-muted-foreground">RESEND_API_KEY ve MAIL_FROM birlikte yoksa başvuru numarası yalnız ekranda kalır. Yönetici duyurusu için CONTACT_NOTIFY_EMAIL de gerekir. Kayıt silinmez.</p>
         </li>
         {accounts.filter((account) => account.provider !== "whatsapp").map((account) => (
           <li key={account.provider} className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-medium">{providerLabel[account.provider] ?? account.provider}</h2>
               <span className="rounded-full bg-muted px-2 py-1 text-xs">
-                {account.status === "connected" ? "Bağlı" : account.status === "error" ? "Bağlantı hatası" : account.status === "mock" ? "MOCK" : "Kurulum bekleniyor"}
+                {account.provider === "telegram"
+                  ? "Devre dışı"
+                  : account.status === "connected"
+                    ? "Bağlı"
+                    : account.status === "error"
+                      ? "Bağlantı hatası"
+                      : account.status === "mock"
+                        ? "MOCK"
+                        : "Kurulum bekleniyor"}
               </span>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">{account.last_error}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{account.provider === "telegram" ? "Bot akışı kapalı. Eski satırlar silinmedi." : account.last_error}</p>
             <p className="mt-1 text-xs text-muted-foreground">Ortam adı: {account.secret_ref || "—"} · {formatDateTime(account.updated_at)}</p>
           </li>
         ))}
       </ul>
       <h2 className="mt-10 font-medium">Otomasyon tercihleri</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Telegram karşılama anahtarı Telegram sayfasından açılır. Diğer işler bu fazda çalışmaz.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Telegram karşılama kapalıdır. Açık görünen eski anahtar yeni mesaj göndermez.</p>
       <ul className="mt-3 divide-y divide-border rounded-2xl border border-border">
         {automations.map((item) => (
           <li key={item.kind} className="flex items-center justify-between px-4 py-3 text-sm">

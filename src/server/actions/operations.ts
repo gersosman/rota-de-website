@@ -16,7 +16,8 @@ import {
   setPipelineStage,
   updateContactMessage,
 } from "@/server/operations";
-import { notifyAdmin } from "@/server/telegram/notify";
+import { contactInbox } from "@/server/mail";
+import { enqueueOutbound, settleOutbound } from "@/server/outbound";
 
 function back(path: string, notice: string): never {
   redirect(`${path}?notice=${encodeURIComponent(notice.slice(0, 180))}`);
@@ -147,9 +148,20 @@ export async function requestHumanAction(input: unknown) {
   try {
     const result = await createSupportRequest({ fullName, message, email });
     if (!result.ok) return { ok: false as const, code: "invalid" as const };
-    await notifyAdmin(
-      ["ROTA DE — Destek talebi", "", `Başvuru No: ${result.publicCode}`, `Ad Soyad: ${fullName.trim().slice(0, 120)}`, "Kaynak: Site asistanı", "", "Admin panelinden görüntüle."].join("\n"),
-    ).catch(() => "failed" as const);
+    const inbox = contactInbox();
+    if (inbox) {
+      try {
+        const id = await enqueueOutbound("email", {
+          purpose: "staff",
+          to: inbox,
+          subject: "ROTA DE — Destek talebi",
+          text: ["Destek talebi", "", `Kayıt: ${result.publicCode}`, `Ad soyad: ${fullName.trim().slice(0, 120)}`, email ? `E-posta: ${email.trim().slice(0, 180)}` : "", "", message.trim().slice(0, 2000)].filter(Boolean).join("\n"),
+        });
+        await settleOutbound(id);
+      } catch (error) {
+        console.error("outbound_enqueue_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+      }
+    }
     return { ok: true as const, publicCode: result.publicCode };
   } catch {
     return { ok: false as const, code: "unavailable" as const };

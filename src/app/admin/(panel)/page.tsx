@@ -24,10 +24,7 @@ export default async function DashboardPage() {
   const counts = data.counts;
   const sales = data.sales;
   const instagram = data.integrations.find((item) => item.provider === "instagram");
-  const telegram = data.integrations.find((item) => item.provider === "telegram");
   const instagramConnected = instagram?.status === "connected";
-  const telegramConnected = telegram?.status === "connected";
-  const channelState = (status?: string) => status === "connected" ? "Bağlı" : status === "error" ? "Bağlantı hatası" : "Kurulum bekleniyor";
   return (
     <main className="mx-auto max-w-5xl">
       <div className="flex items-end justify-between gap-4">
@@ -65,10 +62,10 @@ export default async function DashboardPage() {
           />
           <Row
             label="Telegram"
-            value={channelState(telegram?.status)}
-            hint={telegramConnected ? `Kayıtlı konuşma: ${num(counts?.telegram_conversations)}` : "Bot yapılandırılmadı."}
+            value="Devre dışı"
+            hint="Yeni başvuru ve bildirim bu kanaldan açılmaz. Eski kayıtlar durur."
           />
-          <Row label="Başvuru" value={String(outcomes.applications)} hint="Silinmemiş ve birleştirilmemiş web, Telegram ve elle açılan dosyalar" />
+          <Row label="Başvuru" value={String(outcomes.applications)} hint="Silinmemiş ve birleştirilmemiş web ve elle açılan dosyalar" />
           <Row label="Ön değerlendirme" value={String(outcomes.precheck)} hint="Değerlendirme kaydı olan dosyalar" />
           <Row label="Görüşme aşaması" value={String(outcomes.interview)} hint="Yalnız pipeline_stage = interview" />
           <Row label="Sözleşme" value={String(outcomes.contract)} hint="Vize onayı bu sayıya girmez" />

@@ -95,4 +95,14 @@ test("notification retries wait longer and a failed notice does not remove the a
     ["Ada Yılmaz", "4915112345678"],
   );
   assert.equal(again.rows[0]?.public_code, "ROTA-2026-KAM42A");
+  const legacy = new PGlite();
+  for (const file of ["001_init.sql", "002_telegram.sql", "003_phase3.sql", "004_phase4.sql"]) {
+    await legacy.exec(await readFile(new URL(`../migrations/${file}`, import.meta.url), "utf8"));
+  }
+  await assert.rejects(
+    legacy.query(
+      `insert into leads (public_code, full_name, contact_preference, city, availability, source, status)
+       values ('ROTA-2026-OLD001', 'Eski Kayıt', 'phone', 'Ankara', 'later', 'website_assessment', 'NEW')`,
+    ),
+  );
 });

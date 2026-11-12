@@ -25,7 +25,7 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
   if (!lead) notFound();
   const suggestions = await phoneSuggestions(lead.id, lead.phone);
   const facts = [
-    ["İletişim tercihi", lead.contactPreference],
+    ["İletişim kanalları", lead.contactChannels.length ? lead.contactChannels.join(", ") : lead.contactPreference],
     ["Telefon", lead.phone || "—"],
     ["Telegram", lead.telegramHandle || "—"],
     ["Instagram", lead.instagramHandle || "—"],
@@ -33,7 +33,7 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
     ["Yaş aralığı", lead.ageRange || "—"],
     ["Ehliyet", lead.licenceClasses.join(", ") || "—"],
     ["Ehliyet ülkesi", lead.licenceCountry || "—"],
-    ["CE", lead.licenceClasses.includes("CE") ? "sınıf listesinde" : "ayrı soruya bakın"],
+    ["CE", lead.ceIntent === "have" || lead.licenceClasses.includes("CE") ? "Var" : lead.ceIntent === "planning" ? "Almayı planlıyor" : "Belirtilmedi"],
     ["AB/AEA", lead.euEeaLicence || "—"],
     ["Code 95", lead.code95Status || "—"],
     ["Tecrübe", lead.experienceRange || "—"],

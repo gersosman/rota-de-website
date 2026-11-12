@@ -10,10 +10,20 @@ test("contact schema stores the message fields and rejects a missing consent", (
     email: "ada@example.com",
     message: "Süreci sormak istiyorum.",
     contactPreference: "telegram",
+    telegramHandle: "adayrota",
     consent: true,
     idempotencyKey: "contact-key-1",
   });
   assert.equal(parsed.success, true);
+  const missingHandle = contactSchema.safeParse({
+    fullName: "Ada Yılmaz",
+    email: "ada@example.com",
+    message: "Süreci sormak istiyorum.",
+    contactPreference: "telegram",
+    consent: true,
+    idempotencyKey: "contact-key-1",
+  });
+  assert.equal(missingHandle.success, false);
   const denied = contactSchema.safeParse({
     fullName: "Ada Yılmaz",
     email: "ada@example.com",
@@ -23,6 +33,27 @@ test("contact schema stores the message fields and rejects a missing consent", (
     idempotencyKey: "contact-key-1",
   });
   assert.equal(denied.success, false);
+  const phoneOnly = contactSchema.safeParse({
+    fullName: "Ada Yılmaz",
+    email: "",
+    message: "Süreci sormak istiyorum.",
+    contactPreference: "phone",
+    channels: ["phone"],
+    phone: "+49 151 12345678",
+    consent: true,
+    idempotencyKey: "contact-key-2",
+  });
+  assert.equal(phoneOnly.success, true);
+  const badEmail = contactSchema.safeParse({
+    fullName: "Ada Yılmaz",
+    email: "eksik",
+    message: "Süreci sormak istiyorum.",
+    contactPreference: "email",
+    channels: ["email"],
+    consent: true,
+    idempotencyKey: "contact-key-3",
+  });
+  assert.equal(badEmail.success, false);
 });
 
 test("phase 4 tables enable row level security and start empty", async () => {

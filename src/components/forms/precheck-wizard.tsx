@@ -176,7 +176,9 @@ export function PrecheckWizard({
         companyWebsite: website,
       });
     } catch {
-      setError(copy.errors.unavailable ?? "");
+      const ref = crypto.randomUUID().slice(0, 8);
+      const base = copy.errors.unavailable ?? "";
+      setError(base ? `${base} ${copy.reference}: ${ref}` : ref);
       setPending(false);
       return;
     }
@@ -285,9 +287,10 @@ export function PrecheckWizard({
               <li>{copy.srcTitle} {form.src3 === "have" ? copy.srcHave : form.src3 === "planning" ? copy.srcPlan : copy.srcInfo}</li>
               <li>{copy.expTitle} {copy.experience[form.experience]}</li>
               <li>{copy.countryTitle} {copy.countries[form.residence]}</li>
-              <li>{copy.germanTitle} {form.german}</li>
-              <li>{copy.whenTitle} {form.availability}</li>
+              <li>{copy.germanTitle} {form.german === "none" ? copy.germanNone : form.german === "beginner" ? copy.germanStart : form.german === "mid" ? copy.germanMid : copy.germanGood}</li>
+              <li>{copy.whenTitle} {form.availability === "now" ? copy.whenNow : form.availability === "m1_3" ? copy.when13 : form.availability === "m3_6" ? copy.when36 : copy.whenLater}</li>
               <li>{form.fullName} · {form.city}</li>
+              <li>{form.channels.map((channel) => (channel === "phone" ? copy.channelPhone : channel === "email" ? copy.channelEmail : copy.channelTelegram)).join(", ")}</li>
             </ul>
           </div>
         ) : null}

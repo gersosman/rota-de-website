@@ -123,17 +123,26 @@ export type JourneyInput = z.infer<typeof journeySchema>;
 export const contactSchema = z
   .object({
     fullName: z.string().trim().min(3).max(120),
-    email: z.email().max(180),
+    email: z.union([z.literal(""), z.email().max(180)]).optional(),
     message: z.string().trim().min(10).max(4000),
     contactPreference: z.enum(contactPreferences),
+    channels: z.array(z.enum(journeyChannels)).max(3).optional(),
     phone: optionalHandle,
+    telegramHandle: optionalHandle,
     consent: z.literal(true),
     idempotencyKey: z.string().trim().min(8).max(80),
     companyWebsite: z.string().max(200).optional(),
   })
   .superRefine((value, context) => {
-    if (value.contactPreference === "phone" && !value.phone) {
-      context.addIssue({ code: "custom", path: ["phone"], message: "required" });
+    const channels = value.channels?.length ? value.channels : [value.contactPreference];
+    if (channels.includes("phone") && !phoneField.safeParse(value.phone ?? "").success) {
+      context.addIssue({ code: "custom", path: ["phone"], message: "phone" });
+    }
+    if (channels.includes("email") && !value.email?.includes("@")) {
+      context.addIssue({ code: "custom", path: ["email"], message: "email" });
+    }
+    if (channels.includes("telegram") && !/^@?[A-Za-z0-9_]{5,32}$/.test(value.telegramHandle ?? "")) {
+      context.addIssue({ code: "custom", path: ["telegramHandle"], message: "telegram" });
     }
   });
 

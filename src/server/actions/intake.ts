@@ -6,7 +6,6 @@ import { createAssessmentLead, createContactLead, createJourneyLead, findSubmiss
 import { allowRate, hashValue } from "@/server/rate-limit";
 import { ceLabel, experienceLabel, src3Label } from "@/lib/domain/pipeline";
 import { drainOutbound, enqueueOutbound } from "@/server/outbound";
-import { notifyAdmin } from "@/server/telegram/notify";
 import { assessmentSchema, contactSchema, deletionSchema, journeySchema } from "@/lib/validation/assessment";
 
 function failureRef(scope: string, error: unknown): string {
@@ -100,19 +99,26 @@ export async function submitContact(input: unknown) {
   try {
     const result = await createContactLead(parsed.data);
     if (!result.duplicate && result.publicCode) {
-      const preference = parsed.data.contactPreference === "telegram" ? "Telegram" : parsed.data.contactPreference === "phone" ? "Telefon" : parsed.data.contactPreference === "email" ? "E-posta" : "Belirtilmedi";
-      await notifyAdmin(
-        [
-          "ROTA DE — Yeni iletişim talebi",
-          "",
-          `Başvuru No: ${result.publicCode}`,
-          `Ad Soyad: ${parsed.data.fullName}`,
-          `Tercih: ${preference}`,
-          "Durum: Yeni",
-          "",
-          "Mesaj paneldedir. E-posta ve telefon bu bildirime yazılmadı.",
-        ].join("\n"),
-      ).catch(() => "failed" as const);
+      const channels = parsed.data.channels?.length ? parsed.data.channels : [parsed.data.contactPreference];
+      const preference = channels.map((channel) => (channel === "telegram" ? "Telegram" : channel === "phone" ? "Telefon" : "E-posta")).join(", ");
+      const text = [
+        "ROTA DE — Yeni iletişim talebi",
+        "",
+        `Başvuru No: ${result.publicCode}`,
+        `Ad Soyad: ${parsed.data.fullName}`,
+        `Tercih: ${preference}${parsed.data.telegramHandle ? ` (${parsed.data.telegramHandle})` : ""}`,
+        "Durum: Yeni",
+        "",
+        "Mesaj paneldedir. E-posta ve telefon bu bildirime yazılmadı.",
+      ].join("\n");
+      try {
+        await enqueueOutbound("telegram", { text });
+      } catch (error) {
+        console.error("outbound_enqueue_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+      }
+      void drainOutbound().catch((error: unknown) => {
+        console.error("outbound_drain_failed", { message: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+      });
     }
     return { ok: true as const, publicCode: result.publicCode, duplicate: result.duplicate };
   } catch (error) {

@@ -49,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={locale}
       className={`${outfit.variable} ${newsreader.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground">
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBoot }} />

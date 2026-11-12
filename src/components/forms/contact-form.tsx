@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { submitContact } from "@/server/actions/intake";
+import { ChannelPicker, type ContactChannel } from "@/components/forms/channel-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,9 @@ export function ContactForm({
     message: string;
     preference: string;
     phone: string;
+    telegram: string;
+    channelHint: string;
+    channelNeed: string;
     consent: string;
     submit: string;
     done: string;
@@ -29,7 +33,10 @@ export function ContactForm({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
-  const [preference, setPreference] = useState("email");
+  const [channels, setChannels] = useState<ContactChannel[]>([]);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [telegram, setTelegram] = useState("");
 
   if (done) {
     return (
@@ -46,13 +53,19 @@ export function ContactForm({
       onSubmit={async (event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
+        if (!channels[0]) {
+          setError(labels.channelNeed);
+          return;
+        }
         setPending(true);
         const result = await submitContact({
           fullName: form.get("fullName"),
-          email: form.get("email"),
+          email: channels.includes("email") ? email : "",
           message: form.get("message"),
-          contactPreference: form.get("contactPreference"),
-          phone: form.get("phone") || "",
+          contactPreference: channels[0],
+          channels,
+          phone: channels.includes("phone") ? phone : "",
+          telegramHandle: channels.includes("telegram") ? telegram : "",
           consent: form.get("consent") === "on" ? true : false,
           idempotencyKey: key,
           companyWebsite: website,
@@ -70,25 +83,33 @@ export function ContactForm({
         <Input id="fullName" name="fullName" className="h-11" required minLength={3} />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="email">{labels.email}</Label>
-        <Input id="email" name="email" type="email" className="h-11" required />
-      </div>
-      <div className="grid gap-1.5">
         <Label htmlFor="message">{labels.message}</Label>
         <Textarea id="message" name="message" required minLength={10} className="min-h-32" />
       </div>
-      <label className="grid gap-1.5 text-sm">
-        {labels.preference}
-        <select name="contactPreference" className="h-11 rounded-lg border border-input bg-card px-3" value={preference} onChange={(event) => setPreference(event.target.value)}>
-          {["email", "phone", "telegram"].map((item) => (
-            <option key={item} value={item}>{item === "phone" ? labels.phone : labels.options[item]}</option>
-          ))}
-        </select>
-      </label>
-      {preference === "phone" ? (
+      <ChannelPicker
+        value={channels}
+        onChange={setChannels}
+        title={labels.preference}
+        hint={labels.channelHint}
+        required={labels.channelNeed}
+        labels={{ phone: labels.phone, email: labels.options.email ?? "E-posta", telegram: labels.options.telegram ?? "Telegram" }}
+      />
+      {channels.includes("phone") ? (
         <div className="grid gap-1.5">
           <Label htmlFor="phone">{labels.phone}</Label>
-          <Input id="phone" name="phone" required minLength={8} className="h-11" inputMode="tel" />
+          <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} required minLength={8} className="h-11" inputMode="tel" autoComplete="tel" />
+        </div>
+      ) : null}
+      {channels.includes("email") ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor="email">{labels.email}</Label>
+          <Input id="email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" className="h-11" required autoComplete="email" />
+        </div>
+      ) : null}
+      {channels.includes("telegram") ? (
+        <div className="grid gap-1.5">
+          <Label htmlFor="telegram">{labels.telegram}</Label>
+          <Input id="telegram" value={telegram} onChange={(event) => setTelegram(event.target.value)} required minLength={5} className="h-11" autoComplete="off" />
         </div>
       ) : null}
       <label className="flex items-start gap-3 text-sm leading-6">

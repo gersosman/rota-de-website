@@ -63,6 +63,7 @@ type LeadRow = {
   availability: string | null;
   scenario_hint: ScenarioHint | null;
   notes: string | null;
+  contact_channels: unknown;
   last_contact_at: string | null;
   follow_up_on: string | null;
   created_at: string;
@@ -477,13 +478,16 @@ export async function createContactLead(input: ContactInput) {
   const existing = await findSubmission(input.idempotencyKey);
   if (existing) return { publicCode: existing, duplicate: true as const };
 
+  const channels = input.channels?.length ? input.channels : [input.contactPreference];
+  const email = input.email?.includes("@") ? input.email.toLowerCase() : null;
+  const preference = channels[0] ?? input.contactPreference;
   return withTransaction(async (query) => {
     const publicCode = await allocatePublicCode(query);
     const leads = await query<{ id: string }>(
-      `insert into leads (public_code, full_name, email, contact_preference, phone, source, status)
-       values ($1, $2, $3, $4, $5, 'website_contact', 'NEW')
+      `insert into leads (public_code, full_name, email, contact_preference, phone, telegram_handle, contact_channels, source, status)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, 'website_contact', 'NEW')
        returning id`,
-      [publicCode, input.fullName, input.email.toLowerCase(), input.contactPreference, input.phone ?? null],
+      [publicCode, input.fullName, email, preference, input.phone ?? null, input.telegramHandle ?? null, JSON.stringify(channels)],
     );
     const leadId = leads[0]?.id;
     if (!leadId) throw new Error("lead_insert_failed");
@@ -502,7 +506,7 @@ export async function createContactLead(input: ContactInput) {
     await query(
       `insert into contact_messages (lead_id, full_name, email, message, contact_preference, status)
        values ($1, $2, $3, $4, $5, 'new')`,
-      [leadId, input.fullName, input.email.toLowerCase(), input.message, input.contactPreference],
+      [leadId, input.fullName, email, input.message, preference],
     );
     await query(
       `insert into consent_records (lead_id, purpose, text_version, granted) values ($1, 'contact', $2, true)`,
@@ -625,7 +629,7 @@ export async function listLeads(filters: {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, contact_channels, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads
      where ${where.join(" and ")}
@@ -642,7 +646,7 @@ export async function getLead(id: string) {
     `select id, public_code, full_name, email, contact_preference, phone, telegram_handle, instagram_handle,
             country, age_range, licence_classes, licence_country, experience_range, eu_eea_licence,
             code95_status, german_level, intent, source, status, ce_intent, src3_status, family_status,
-            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, last_contact_at,
+            spouse_german, children_ages, city, marketing_opt_in, pipeline_stage, tracker_stage, availability, scenario_hint, notes, contact_channels, last_contact_at,
             follow_up_on::text, created_at, updated_at, deleted_at
      from leads where id = $1`,
     [id],
@@ -720,6 +724,7 @@ export async function getLead(id: string) {
     spouseGerman: lead.spouse_german,
     childrenAges: lead.children_ages,
     marketingOptIn: Boolean(lead.marketing_opt_in),
+    contactChannels: jsonArray(lead.contact_channels),
     pipelineStage: lead.pipeline_stage,
     availability: lead.availability,
     trackerEvents,

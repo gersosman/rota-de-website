@@ -10,6 +10,8 @@ Ziyaretçi ücretsiz ön değerlendirmeyi adım adım doldurur. Şehir alanı, p
 
 Site Türkçe ve Almancadır. Yönetim paneli Türkçedir. Kişisel telefon yayımlanmaz. Telegram, bot bağlı değilken herkese açık bir bağlantı göstermez. Yapay zekâ asistanı model anahtarı olmadan cevap uydurmaz.
 
+Metinler kısa ve kurumsal kalır. “Ne yapar, ne yapmaz”, “İnsan inceler” ve belirsiz “bir süre sonra deneyin” kalıpları kullanılmaz. Sunulmayan bir belge incelemesi veya garanti yazılmaz. Gündüz ve gece renkleri `globals.css` içindeki ortak belirteçlerden gelir; hero bölümü de bu belirteçleri kullanır.
+
 ## Çalıştırma
 
 ```bash

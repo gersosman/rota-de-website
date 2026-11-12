@@ -79,7 +79,7 @@ export async function listContactMessages() {
   return sql<{
     id: string;
     full_name: string;
-    email: string;
+    email: string | null;
     message: string;
     contact_preference: string;
     status: string;

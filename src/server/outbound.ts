@@ -14,6 +14,18 @@ export async function enqueueOutbound(kind: JobKind, payload: Record<string, str
   );
 }
 
+async function reschedule(id: string, attempts: number, lastError: string) {
+  await sql(
+    `update outbound_jobs
+     set attempts = $2,
+         last_error = $3,
+         status = case when $2 >= 5 then 'failed' else 'pending' end,
+         next_attempt_at = now() + make_interval(secs => $4::int)
+     where id = $1`,
+    [id, attempts, lastError.slice(0, 180), Math.round(nextAttemptDelayMs(attempts) / 1000)],
+  );
+}
+
 async function deliver(kind: string, payload: Record<string, string>): Promise<"sent" | "skipped" | "failed" | "no-email"> {
   if (kind === "email") return sendApplicationCode(payload.to ?? null, payload.code ?? "");
   if (kind === "telegram") return notifyAdmin(payload.text ?? "");
@@ -43,21 +55,11 @@ export async function drainOutbound(limit = 8): Promise<void> {
         );
         continue;
       }
-      const attempts = job.attempts + 1;
-      await sql(
-        `update outbound_jobs
-         set attempts = $2,
-             last_error = 'delivery_failed',
-             status = case when $2 >= 5 then 'failed' else 'pending' end,
-             next_attempt_at = now() + make_interval(secs => $3::int)
-         where id = $1`,
-        [job.id, attempts, Math.round(nextAttemptDelayMs(attempts) / 1000)],
-      );
+      await reschedule(job.id, job.attempts + 1, "delivery_failed");
     } catch (error) {
-      console.error("outbound_failed", {
-        kind: job.kind,
-        message: error instanceof Error ? error.message.slice(0, 180) : "unknown",
-      });
+      const message = error instanceof Error ? error.message.slice(0, 180) : "unknown";
+      console.error("outbound_failed", { kind: job.kind, message });
+      await reschedule(job.id, job.attempts + 1, message).catch(() => undefined);
     }
   }
 }

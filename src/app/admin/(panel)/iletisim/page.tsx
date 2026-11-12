@@ -28,7 +28,7 @@ export default async function ContactInboxPage(props: { searchParams: Promise<Re
         {rows.map((row) => (
           <article key={row.id} className="rounded-2xl border border-border bg-card p-4">
             <p className="text-sm font-medium">{row.full_name} · {row.public_code ?? "Dosya yok"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{row.email} · {row.contact_preference} · {formatDateTime(row.created_at)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{row.email || "E-posta yok"} · {row.contact_preference} · {formatDateTime(row.created_at)}</p>
             <p className="mt-3 text-sm leading-6 whitespace-pre-wrap">{row.message}</p>
             <form action={contactUpdateAction} className="mt-3 grid gap-2">
               <input type="hidden" name="id" value={row.id} />

@@ -1,7 +1,12 @@
 import { readdir, readFile } from "node:fs/promises";
 import pg from "pg";
 
-const url = process.env.DATABASE_URL?.trim() ?? "";
+const url = [process.env.DATABASE_URL, process.env.POSTGRES_URL, process.env.POSTGRES_PRISMA_URL]
+  .map((value) => value?.trim() ?? "")
+  .find(Boolean) ?? "";
+const migrationUrl = [process.env.DATABASE_URL_UNPOOLED, process.env.POSTGRES_URL_NON_POOLING]
+  .map((value) => value?.trim() ?? "")
+  .find(Boolean) || url;
 const files = (await readdir("migrations").catch(() => [])).filter((file) => file.endsWith(".sql")).sort();
 
 if (url === "" || files.length === 0) {
@@ -10,7 +15,7 @@ if (url === "" || files.length === 0) {
 }
 
 const client = new pg.Client({
-  connectionString: process.env.DATABASE_URL_UNPOOLED?.trim() || url,
+  connectionString: migrationUrl,
 });
 await client.connect();
 

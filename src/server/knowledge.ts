@@ -1,7 +1,7 @@
 import "server-only";
 
 import { audit, auditWith } from "@/server/audit";
-import { dataStoreMode, sql, withTransaction } from "@/server/db";
+import { dataStoreMode, readOptional, sql, withTransaction } from "@/server/db";
 import { num } from "@/lib/format";
 import {
   companySchema,
@@ -12,7 +12,24 @@ import {
 import type { z } from "zod";
 
 export async function activeLegislation() {
-  const rows = await sql(
+  const rows = await readOptional<{
+    id: string;
+    version_label: string;
+    review_status: string;
+    summary_tr: string;
+    summary_de: string;
+    abs1_label_tr: string;
+    abs1_label_de: string;
+    abs1_note_tr: string;
+    abs1_note_de: string;
+    abs2_label_tr: string;
+    abs2_label_de: string;
+    abs2_note_tr: string;
+    abs2_note_de: string;
+    is_active: boolean;
+    updated_at: string;
+  }>(
+    "legislation_read_failed",
     `select id, version_label, review_status, summary_tr, summary_de,
             abs1_label_tr, abs1_label_de, abs1_note_tr, abs1_note_de,
             abs2_label_tr, abs2_label_de, abs2_note_tr, abs2_note_de,
@@ -21,7 +38,7 @@ export async function activeLegislation() {
      where is_active = true
      limit 1`,
   );
-  return rows[0] ?? null;
+  return rows?.[0] ?? null;
 }
 
 export async function listLegislation() {
@@ -74,13 +91,23 @@ export async function listFaqs(locale?: "tr" | "de", publishedOnly = false) {
     where.push(`locale = $${params.length}`);
   }
   if (publishedOnly) where.push("published = true");
-  return sql(
+  const rows = await readOptional<{
+    id: string;
+    locale: string;
+    question: string;
+    answer: string;
+    published: boolean;
+    source_note: string | null;
+    updated_at: string;
+  }>(
+    "faq_read_failed",
     `select id, locale, question, answer, published, source_note, updated_at
      from faq_entries
      ${where.length ? `where ${where.join(" and ")}` : ""}
      order by updated_at desc`,
     params,
   );
+  return rows ?? [];
 }
 
 export async function saveFaq(
@@ -191,7 +218,7 @@ export function describeDataStore() {
 }
 
 export async function publishedServices(locale: "tr" | "de") {
-  const rows = await sql<{
+  const rows = await readOptional<{
     id: string;
     slug: string;
     name_tr: string;
@@ -201,7 +228,8 @@ export async function publishedServices(locale: "tr" | "de") {
     price_cents: number | null;
     currency: string;
     legally_separate: boolean;
-  }>("select id, slug, name_tr, name_de, description_tr, description_de, price_cents, currency, legally_separate from services where active = true order by name_tr");
+  }>("services_read_failed", "select id, slug, name_tr, name_de, description_tr, description_de, price_cents, currency, legally_separate from services where active = true order by name_tr");
+  if (!rows) return [];
   return rows.map((row) => ({
     id: row.id,
     slug: row.slug,

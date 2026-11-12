@@ -1,6 +1,6 @@
 import "server-only";
 
-import { sql, withTransaction } from "@/server/db";
+import { readOptional, sql, withTransaction } from "@/server/db";
 import { audit } from "@/server/audit";
 import { createTelegramLead } from "@/server/leads";
 import { linkTelegramTrack } from "@/server/tracker";
@@ -402,9 +402,11 @@ export async function setTelegramWelcome(actorId: string, enabled: boolean) {
 }
 
 export async function publicBotLink(): Promise<string | null> {
-  const rows = await sql<{ status: string; external_account_id: string | null }>(
+  const rows = await readOptional<{ status: string; external_account_id: string | null }>(
+    "public_bot_link_failed",
     "select status, external_account_id from integration_accounts where provider = 'telegram'",
   );
+  if (!rows) return null;
   const name = rows[0]?.external_account_id ?? "";
   if (rows[0]?.status !== "connected" || !/^[A-Za-z0-9_]{5,32}$/.test(name)) return null;
   return `https://t.me/${name}`;

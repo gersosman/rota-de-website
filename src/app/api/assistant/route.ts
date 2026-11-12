@@ -11,16 +11,24 @@ import {
 } from "@/server/assistant";
 import { allowRate, hashValue } from "@/server/rate-limit";
 import { isUuid } from "@/lib/format";
+import { dbFailureKind, safeDbError } from "@/server/database-url";
 
 export const instant = false;
 
 export async function GET() {
-  const settings = await assistantSettings();
-  return Response.json({
-    configured: settings.configured && settings.enabled,
-    enabled: settings.enabled,
-    modelConnected: settings.configured,
-  });
+  try {
+    const settings = await assistantSettings();
+    return Response.json({
+      configured: settings.configured && settings.enabled,
+      enabled: settings.enabled,
+      modelConnected: settings.configured,
+    });
+  } catch (error) {
+    const kind = dbFailureKind(error);
+    console.error("assistant_status_failed", { kind, ...safeDbError(error) });
+    if (kind === "query") return Response.json({ ok: false }, { status: 500 });
+    return Response.json({ configured: false, enabled: false, modelConnected: false });
+  }
 }
 
 export async function POST(request: Request) {

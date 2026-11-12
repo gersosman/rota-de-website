@@ -4,13 +4,30 @@ import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { connection } from "next/server";
 import pg from "pg";
+import { DatabaseNotConfiguredError, dbFailureKind, resolveDatabaseUrl, safeDbError } from "@/server/database-url";
 
 type LocalDb = {
   exec: (query: string) => Promise<unknown>;
   query: <T>(query: string, params?: unknown[]) => Promise<{ rows: T[] }>;
 };
 
-const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
+const databaseUrl = resolveDatabaseUrl();
+
+function serverlessRuntime() {
+  return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
+let loggedMissingDatabase = false;
+
+function requireConfiguredDatabase(): never {
+  if (!loggedMissingDatabase) {
+    loggedMissingDatabase = true;
+    console.error("database_not_configured", {
+      required: ["DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL"],
+    });
+  }
+  throw new DatabaseNotConfiguredError();
+}
 let pool: pg.Pool | undefined;
 let local: Promise<LocalDb> | undefined;
 let localChain: Promise<unknown> = Promise.resolve();
@@ -63,6 +80,7 @@ export async function applyPendingMigrations(db: LocalDb) {
 }
 
 async function startLocal(): Promise<LocalDb> {
+  if (serverlessRuntime()) requireConfiguredDatabase();
   const { PGlite } = await import("@electric-sql/pglite");
   const persist = process.env.NEXT_PHASE !== "phase-production-build";
   const directory = path.join(process.cwd(), "data", "pglite");
@@ -80,12 +98,27 @@ function getLocal(): Promise<LocalDb> {
   return local;
 }
 
+function postgresSsl(connectionString: string): pg.ConnectionConfig["ssl"] {
+  const mode = /(?:\?|&)sslmode=([^&]+)/i.exec(connectionString)?.[1]?.toLowerCase();
+  if (mode === "disable") return undefined;
+  if (mode === "verify-full" || mode === "verify-ca") return { rejectUnauthorized: true };
+  if (mode) return { rejectUnauthorized: false };
+  let host = "";
+  try {
+    host = new URL(connectionString).hostname;
+  } catch {
+    host = "";
+  }
+  if (!host || host === "localhost" || host === "127.0.0.1" || host === "::1") return undefined;
+  if (process.env.NODE_ENV === "production") return { rejectUnauthorized: false };
+  return undefined;
+}
+
 function getPool(): pg.Pool {
-  const sslMode = /(?:\?|&)sslmode=([^&]+)/i.exec(databaseUrl)?.[1]?.toLowerCase();
   pool ??= new pg.Pool({
     connectionString: databaseUrl,
     max: 5,
-    ssl: sslMode && sslMode !== "disable" ? { rejectUnauthorized: false } : undefined,
+    ssl: postgresSsl(databaseUrl),
   });
   return pool;
 }
@@ -93,10 +126,17 @@ function getPool(): pg.Pool {
 let postgresReady: Promise<void> | undefined;
 
 async function ensurePostgresSchema() {
-  postgresReady ??= migratePostgres().catch((error: unknown) => {
-    postgresReady = undefined;
-    throw error;
-  });
+  if (postgresReady) return postgresReady;
+  postgresReady = migratePostgres().then(
+    () => undefined,
+    (error: unknown) => {
+      console.error("schema_check_failed", safeDbError(error));
+      if (dbFailureKind(error) !== "query") {
+        postgresReady = undefined;
+        throw error;
+      }
+    },
+  );
   return postgresReady;
 }
 
@@ -165,6 +205,7 @@ export async function sql<T = Record<string, unknown>>(
     const result = await getPool().query(text, params);
     return result.rows as T[];
   }
+  if (serverlessRuntime()) requireConfiguredDatabase();
   return enqueue(async () => {
     const db = await getLocal();
     await applyPendingMigrations(db);
@@ -173,8 +214,20 @@ export async function sql<T = Record<string, unknown>>(
   });
 }
 
+export async function readOptional<T>(scope: string, text: string, params: unknown[] = []): Promise<T[] | null> {
+  try {
+    return await sql<T>(text, params);
+  } catch (error) {
+    const kind = dbFailureKind(error);
+    if (kind === "query") throw error;
+    console.error(scope, { kind, ...safeDbError(error) });
+    return null;
+  }
+}
+
 export async function withTransaction<T>(fn: (query: QueryFn) => Promise<T>): Promise<T> {
   await bindToRequest();
+  if (serverlessRuntime() && databaseUrl === "") requireConfiguredDatabase();
   if (databaseUrl !== "") {
     await ensurePostgresSchema();
     const client = await getPool().connect();

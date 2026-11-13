@@ -51,7 +51,9 @@ export function experienceLabel(value: string | null | undefined): string {
 
 export function ceLabel(value: string | null | undefined): string {
   if (value === "have" || value === "yes") return "Var";
-  if (value === "planning" || value === "no") return "Yok";
+  if (value === "planning") return "Almayı planlıyor";
+  if (value === "no") return "Hayır";
+  if (value === "none") return "Yok";
   return "Belirtilmedi";
 }
 

@@ -19,6 +19,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         labels={{
           how: copy.nav.how,
           germany: copy.nav.germany,
+          contact: copy.nav.contact,
           faq: copy.nav.faq,
           track: copy.nav.track,
         }}
@@ -29,6 +30,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <SiteFooter
         rights={copy.footer.rights}
         labels={{
+          contact: copy.nav.contact,
           impressum: copy.legal.impressum,
           datenschutz: copy.legal.datenschutz,
           agb: copy.legal.agb,

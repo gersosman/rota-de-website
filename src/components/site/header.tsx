@@ -10,6 +10,7 @@ const links = [
   ["germany", "/almanyada-soforluk"],
   ["how", "/nasil-calisir"],
   ["faq", "/sss"],
+  ["contact", "/iletisim"],
   ["track", "/basvuru-takip"],
 ] as const;
 
@@ -30,7 +31,7 @@ export function SiteHeader({
   return (
     <header className="sticky top-0 z-40 border-b border-hero-border bg-hero text-hero-foreground">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
-        <MobileNav items={items} cta={cta} />
+        <MobileNav items={items.filter((item) => item.href !== "/iletisim")} cta={cta} contact={labels.contact} />
         <Link href="/" className="flex items-center gap-2.5">
           <Image src="/mark.svg" alt="" width={36} height={36} unoptimized className="size-9 shrink-0 rounded-lg" />
           <span className="flex items-baseline gap-1.5">
@@ -48,7 +49,10 @@ export function SiteHeader({
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle toDark={themeToDark} toLight={themeToLight} />
           <LocaleSwitch locale={locale} />
-          <Button nativeButton={false} variant="accent" className="hidden h-11 rounded-full px-4 sm:inline-flex" render={<Link href="/on-degerlendirme" />}>
+          <Button nativeButton={false} variant="outline" className="hidden h-11 rounded-full border-hero-border bg-transparent px-4 text-hero-foreground hover:bg-white/10 md:inline-flex" render={<Link href="/iletisim" />}>
+            {labels.contact}
+          </Button>
+          <Button nativeButton={false} variant="accent" className="h-11 rounded-full px-4" render={<Link href="/on-degerlendirme" />}>
             {cta}
           </Button>
         </div>

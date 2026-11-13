@@ -77,7 +77,7 @@ test("the earlier journey payload still validates", () => {
   assert.equal(parsed.success, true);
   if (parsed.success) {
     assert.equal(parsed.data.residence, "TR");
-    assert.equal(parsed.data.availability, "later");
+    assert.equal(parsed.data.availability, undefined);
   }
 });
 

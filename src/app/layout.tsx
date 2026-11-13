@@ -35,7 +35,6 @@ export async function generateMetadata(): Promise<Metadata> {
       description: copy.metaDescription,
       locale: "tr_TR",
       type: "website",
-      images: [{ url: "/photos/highway.jpg", width: 1200, height: 630, alt: copy.phase3.photoHighway }],
     },
   };
 }

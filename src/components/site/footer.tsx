@@ -5,7 +5,7 @@ export function SiteFooter({
   labels,
 }: {
   rights: string;
-  labels: { impressum: string; datenschutz: string; agb: string; withdrawal: string };
+  labels: { contact: string; impressum: string; datenschutz: string; agb: string; withdrawal: string };
 }) {
   return (
     <footer className="mt-auto border-t border-border bg-card pb-20">
@@ -14,6 +14,7 @@ export function SiteFooter({
           ROTA <span className="text-accent">DE</span>
         </p>
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-muted-foreground">
+          <Link href="/iletisim" className="hover:text-foreground">{labels.contact}</Link>
           <Link href="/impressum" className="hover:text-foreground">{labels.impressum}</Link>
           <Link href="/datenschutz" className="hover:text-foreground">{labels.datenschutz}</Link>
           <Link href="/agb" className="hover:text-foreground">{labels.agb}</Link>

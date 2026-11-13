@@ -119,7 +119,7 @@ export function ContactForm({
       </label>
       <input className="absolute -left-[9999px]" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(event) => setWebsite(event.target.value)} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" variant="accent" className="h-11" disabled={pending}>{labels.submit}</Button>
+      <Button type="submit" variant="accent" className="h-14 rounded-full text-base" disabled={pending}>{labels.submit}</Button>
     </form>
   );
 }

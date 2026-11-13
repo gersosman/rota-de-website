@@ -4,6 +4,7 @@ import { addNoteAction, anonymizeLeadAction, changeStatusAction, followUpAction,
 import { pipelineAction } from "@/server/actions/operations";
 import { trackerStageAction } from "@/server/actions/tracker";
 import { LEAD_STATUSES, SCENARIO_LABEL, STATUS_LABEL } from "@/lib/domain/labels";
+import { ceLabel, experienceLabel, src3Label } from "@/lib/domain/pipeline";
 import { PIPELINE_LABEL, PIPELINE_STAGES } from "@/lib/domain/pipeline";
 import { TRACKER_DEFAULT, TRACKER_LABEL, TRACKER_STAGES } from "@/lib/domain/tracker";
 import { requirePanel } from "@/server/auth";
@@ -16,6 +17,27 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export const instant = false;
+
+function asked(value: string | null) {
+  return value || "Sorulmadı";
+}
+
+function triLabel(value: string | null) {
+  if (!value) return "Sorulmadı";
+  if (value === "yes") return "Evet";
+  if (value === "no") return "Hayır";
+  if (value === "unknown") return "Emin değilim";
+  return value;
+}
+
+function germanLabel(value: string | null) {
+  if (!value) return "Sorulmadı";
+  if (value === "none") return "Yok";
+  if (value === "beginner") return "Başlangıç";
+  if (value === "mid") return "A2–B1";
+  if (value === "good") return "B1 ve üzeri";
+  return value;
+}
 
 export default async function LeadPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -30,20 +52,20 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
     ...(lead.telegramHandle ? [["Eski Telegram kullanıcı adı", lead.telegramHandle] as const] : []),
     ["Instagram", lead.instagramHandle || "—"],
     ["Ülke", lead.country || "—"],
-    ["Yaş aralığı", lead.ageRange || "—"],
-    ["Ehliyet", lead.licenceClasses.join(", ") || "—"],
-    ["Ehliyet ülkesi", lead.licenceCountry || "—"],
-    ["CE", lead.ceIntent === "have" || lead.licenceClasses.includes("CE") ? "Var" : lead.ceIntent === "planning" ? "Almayı planlıyor" : "Belirtilmedi"],
-    ["AB/AEA", lead.euEeaLicence || "—"],
-    ["Code 95", lead.code95Status || "—"],
-    ["Tecrübe", lead.experienceRange || "—"],
-    ["Almanca", lead.germanLevel || "—"],
-    ["Niyet", lead.intent || "—"],
+    ["Yaş aralığı", asked(lead.ageRange)],
+    ["Ehliyet", lead.licenceClasses.join(", ") || "Sorulmadı"],
+    ["Ehliyet ülkesi", asked(lead.licenceCountry)],
+    ["CE", lead.ceIntent ? ceLabel(lead.ceIntent) : lead.licenceClasses.includes("CE") ? "Var" : "Belirtilmedi"],
+    ["AB/AEA", triLabel(lead.euEeaLicence)],
+    ["Code 95", triLabel(lead.code95Status)],
+    ["Tecrübe", lead.experienceRange ? experienceLabel(lead.experienceRange) : "Sorulmadı"],
+    ["Almanca", germanLabel(lead.germanLevel)],
+    ["Niyet", asked(lead.intent)],
     ["Kaynak", lead.source],
     ["Şehir", lead.city || "—"],
     ["CE niyeti", lead.ceIntent || "—"],
-    ["SRC3", lead.src3Status || "—"],
-    ["Aile", lead.familyStatus || "—"],
+    ["SRC3", lead.src3Status ? src3Label(lead.src3Status) : "Sorulmadı"],
+    ["Aile", asked(lead.familyStatus)],
     ["Eşin Almancası", lead.spouseGerman || "—"],
     ["Çocuk yaş aralığı", lead.childrenAges || "—"],
     ["Son iletişim", formatDateTime(lead.lastContactAt)],
@@ -61,9 +83,12 @@ export default async function LeadPage(props: { params: Promise<{ id: string }> 
         <Badge>{STATUS_LABEL[lead.status]}</Badge>
       </div>
       {lead.scenarioHint ? (
-        <p className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm">
-          {SCENARIO_LABEL[lead.scenarioHint]}. Bu bir hukuki karar değildir.
-        </p>
+        <div className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm leading-6">
+          <p>{SCENARIO_LABEL[lead.scenarioHint]}. Bu bir hukuki karar değildir.</p>
+          {lead.assessments[0] ? (
+            <p className="mt-1 text-muted-foreground">{String((lead.assessments[0] as { classification_reason?: string }).classification_reason ?? "")}</p>
+          ) : null}
+        </div>
       ) : null}
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-2xl border border-border bg-card p-4">

@@ -14,7 +14,7 @@ export default async function AssessmentPage(props: { searchParams: Promise<Reco
   return (
     <main>
       <PrecheckWizard
-        initial={{ ce: one(params.ce), src3: one(params.src3), german: one(params.german), family: one(params.family) }}
+        initial={{ ce: one(params.ce), src3: one(params.src3) }}
         copy={{
           ...copy.precheck,
           name: text.journey.name,
@@ -28,6 +28,9 @@ export default async function AssessmentPage(props: { searchParams: Promise<Reco
           marketing: text.journey.marketingOpt,
           consent: copy.assessment.consent,
           ack: copy.assessment.ack,
+          countryDetail: copy.precheck.countryDetail,
+          emailHint: copy.precheck.emailHint,
+          emailInvalid: copy.precheck.emailInvalid,
           countries: {
             TR: copy.options.TR,
             DE: copy.options.DE,

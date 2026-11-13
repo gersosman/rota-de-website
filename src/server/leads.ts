@@ -2,7 +2,7 @@ import "server-only";
 
 import { audit, auditWith } from "@/server/audit";
 import { sql, withTransaction, type QueryFn } from "@/server/db";
-import { classifyAssessment } from "@/lib/domain/classify";
+import { classifyAssessment, classifyPrecheck } from "@/lib/domain/classify";
 import type { LeadStatus, ScenarioHint } from "@/lib/domain/labels";
 import { isTrackerStage } from "@/lib/domain/tracker";
 import { escapeLike, isUuid, jsonArray, num } from "@/lib/format";
@@ -328,12 +328,13 @@ export async function createJourneyLead(input: JourneyInput) {
     telegram: contact.telegram,
   });
   if (recent) return { publicCode: recent, duplicate: true as const };
-  const german = input.german === "beginner" ? "A1" : input.german === "mid" ? "B1" : input.german === "good" ? "B2" : "none";
-  const classification = classifyAssessment({
-    hasCe: input.ce === "have" ? "yes" : "no",
-    licenceClasses: input.ce === "have" ? ["CE"] : [],
+  const country = input.residence === "OTHER" ? (input.residenceDetail?.trim() || "OTHER") : input.residence;
+  const classification = classifyPrecheck({
+    residenceCountry: input.residence,
+    residenceDetail: input.residenceDetail,
+    ceIntent: input.ce,
+    src3: input.src3,
     experienceRange: input.experience,
-    germanLevel: german,
   });
   return withTransaction(async (query) => {
     const version = await query<{ id: string }>("select id from legislation_versions where is_active = true limit 1");
@@ -346,7 +347,7 @@ export async function createJourneyLead(input: JourneyInput) {
          source, status, scenario_hint, notes
        ) values (
          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,
-         $11,'unknown','unknown',$12,'unsure','undisclosed',
+         $11,null,null,$12,null,null,
          $13,$14,$15,$16,$17,$18,$19::jsonb,
          'website_assessment',$20,$21,$22
        ) returning id`,
@@ -358,15 +359,15 @@ export async function createJourneyLead(input: JourneyInput) {
         contact.phone,
         contact.telegram,
         input.city,
-        input.residence,
-        input.availability,
+        country,
+        input.availability ?? null,
         JSON.stringify(input.ce === "have" ? ["CE"] : []),
         input.experience,
-        german,
-        input.ce === "have" ? "have" : "planning",
+        input.german ?? null,
+        input.ce,
         input.src3,
-        input.family,
-        input.family === "alone" ? null : (input.spouseGerman ?? null),
+        input.family ?? null,
+        input.family && input.family !== "alone" ? (input.spouseGerman ?? null) : null,
         input.family === "family" ? (input.childrenAges || null) : null,
         input.marketingOptIn,
         JSON.stringify(contact.channels),

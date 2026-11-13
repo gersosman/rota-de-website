@@ -6,11 +6,11 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-export function MobileNav({ items, cta }: { items: Array<{ href: string; label: string }>; cta: string }) {
+export function MobileNav({ items, cta, contact }: { items: Array<{ href: string; label: string }>; cta: string; contact: string }) {
   return (
     <Sheet>
       <SheetTrigger
-        className="inline-flex size-9 items-center justify-center rounded-lg border border-hero-border text-hero-foreground lg:hidden"
+        className="inline-flex size-9 items-center justify-center rounded-lg border border-hero-border text-hero-foreground xl:hidden"
         aria-label="Menü"
       >
         <Menu className="size-4" />
@@ -28,7 +28,10 @@ export function MobileNav({ items, cta }: { items: Array<{ href: string; label: 
               {item.label}
             </Link>
           ))}
-          <Button nativeButton={false} variant="accent" className="mt-3 h-11 rounded-full" render={<Link href="/on-degerlendirme" />}>
+          <Button nativeButton={false} variant="accent" className="mt-4 h-14 rounded-full text-base" render={<Link href="/iletisim" />}>
+            {contact}
+          </Button>
+          <Button nativeButton={false} variant="outline" className="mt-2 h-14 rounded-full text-base" render={<Link href="/on-degerlendirme" />}>
             {cta}
           </Button>
         </nav>

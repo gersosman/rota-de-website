@@ -60,10 +60,11 @@ export const journeySchema = z
     ce: z.enum(["have", "planning"]),
     src3: z.enum(["have", "planning", "info"]),
     experience: z.enum(experienceRanges),
-    german: z.enum(["none", "beginner", "mid", "good"]),
-    family: z.enum(["alone", "spouse", "family"]),
+    german: z.enum(["none", "beginner", "mid", "good"]).optional(),
+    family: z.enum(["alone", "spouse", "family"]).optional(),
     residence: z.enum(residenceCountries).default("TR"),
-    availability: z.enum(availabilityWindows).default("later"),
+    residenceDetail: z.string().trim().max(80).optional().transform((value) => (value ? value : undefined)),
+    availability: z.enum(availabilityWindows).optional(),
     spouseGerman: z.enum(["yes", "no", "unknown"]).optional(),
     childrenAges: z.string().trim().max(80).optional(),
     fullName: z.string().trim().min(3).max(120),
@@ -80,8 +81,11 @@ export const journeySchema = z
     companyWebsite: z.string().max(200).optional(),
   })
   .superRefine((value, context) => {
-    if (value.family !== "alone" && !value.spouseGerman) {
+    if (value.family && value.family !== "alone" && !value.spouseGerman) {
       context.addIssue({ code: "custom", path: ["spouseGerman"], message: "required" });
+    }
+    if (value.residence === "OTHER" && !value.residenceDetail) {
+      context.addIssue({ code: "custom", path: ["residenceDetail"], message: "required" });
     }
   });
 

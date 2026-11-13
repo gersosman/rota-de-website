@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { acknowledgeRecoveryAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,13 @@ export function MfaForm({
             <li key={code} className="rounded-lg border border-border px-3 py-2">{code}</li>
           ))}
         </ul>
-        <Button nativeButton={false} className="h-11" render={<Link href="/admin" />}>Panele geç</Button>
+        <form action={acknowledgeRecoveryAction} className="grid gap-4">
+          <label className="flex items-start gap-3 text-sm leading-6">
+            <input type="checkbox" name="saved" className="mt-1" required />
+            <span>Kurtarma kodlarını güvenli bir yere kaydettim.</span>
+          </label>
+          <Button type="submit" className="h-11">Panele geç</Button>
+        </form>
       </div>
     );
   }

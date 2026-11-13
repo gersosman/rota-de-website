@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { RECOVERY_COOKIE, recoveryCookieOptions } from "@/lib/recovery-screen";
 import { publicGate } from "@/server/actions/guards";
 import {
   confirmMfa,
@@ -116,12 +117,6 @@ async function mfa(request: Request, form: FormData) {
   const codes = await confirmMfa(session.profileId, session.sessionId, code);
   if (!codes) return redirectTo(request, "/admin/mfa?hata=kod");
   const jar = await cookies();
-  jar.set("rota_recovery", codes.join(","), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/admin/mfa",
-    maxAge: 300,
-  });
+  jar.set(RECOVERY_COOKIE, codes.join(","), recoveryCookieOptions(process.env.NODE_ENV === "production"));
   return redirectTo(request, "/admin/mfa?hazir=1");
 }

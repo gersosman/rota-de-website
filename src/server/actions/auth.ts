@@ -1,11 +1,14 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { publicGate } from "@/server/actions/guards";
+import { mayClearRecoveryCookie, RECOVERY_COOKIE, RECOVERY_COOKIE_PATH } from "@/lib/recovery-screen";
 import {
   confirmMfa,
   createFirstAdmin,
+  getSession,
   loginWithPassword,
   logoutCurrent,
   requireMfaStage,
@@ -86,6 +89,24 @@ async function runSetup(formData: FormData) {
 export async function logoutAction() {
   await logoutCurrent();
   redirect("/admin/giris");
+}
+
+export async function acknowledgeRecoveryAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || session.role !== "admin") redirect("/admin/giris");
+  const confirmed = String(formData.get("saved") ?? "") === "on";
+  if (!mayClearRecoveryCookie({ confirmed, mfaEnabled: session.mfaEnabled, mfaPassed: session.mfaPassed })) {
+    redirect("/admin/mfa");
+  }
+  const jar = await cookies();
+  jar.delete({
+    name: RECOVERY_COOKIE,
+    path: RECOVERY_COOKIE_PATH,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  redirect("/admin");
 }
 
 export async function confirmMfaAction(formData: FormData) {

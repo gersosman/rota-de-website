@@ -216,6 +216,8 @@ export const de: DeepString<typeof tr> = {
     sent: "Die Hinweis-E-Mail an das Team wurde gesendet.",
     pending: "Der E-Mail-Hinweis ist noch nicht abgeschlossen.",
     failed: "Der E-Mail-Hinweis konnte nicht gesendet werden. Der Eintrag bleibt gespeichert.",
+    savedUnsent: "Ihre Nachricht wurde gespeichert. Die E-Mail-Benachrichtigung konnte nicht gesendet werden. Der Eintrag bleibt erhalten.",
+    savedPending: "Ihre Nachricht wurde gespeichert. Die E-Mail-Benachrichtigung ist noch nicht abgeschlossen.",
     duplicate: "Diese Sendung war bereits gespeichert.",
   },
   legal: {

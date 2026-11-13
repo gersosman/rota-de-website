@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
+import { contactResultView, type ContactEmailStatus } from "@/lib/contact-mail";
 import { submitContact } from "@/server/actions/intake";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,8 @@ export function ContactForm({
     submit: string;
     done: string;
     sent: string;
-    pending: string;
-    failed: string;
+    savedUnsent: string;
+    savedPending: string;
     duplicate: string;
     errors: Record<string, string>;
   };
@@ -31,22 +32,24 @@ export function ContactForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
-  const [done, setDone] = useState<{ duplicate: boolean; emailStatus?: "sent" | "pending" | "failed" } | null>(null);
+  const [done, setDone] = useState<{ duplicate: boolean; recordCreated: boolean; emailStatus: ContactEmailStatus } | null>(null);
 
   if (done) {
-    const detail = done.duplicate
-      ? labels.duplicate
-      : done.emailStatus === "sent"
-        ? labels.sent
-        : done.emailStatus === "pending"
-          ? labels.pending
-          : done.emailStatus === "failed"
-            ? labels.failed
-            : "";
+    const view = contactResultView(done);
+    const primary = view === "unsent"
+      ? labels.savedUnsent
+      : view === "pending"
+        ? labels.savedPending
+        : labels.done;
+    const detail = view === "sent"
+      ? labels.sent
+      : view === "duplicate"
+        ? labels.duplicate
+        : "";
     return (
       <div className="rounded-2xl border border-border bg-card p-6">
-        <p className="font-medium">{labels.done}</p>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">{detail}</p>
+        <p className="font-medium">{primary}</p>
+        {detail ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{detail}</p> : null}
       </div>
     );
   }
@@ -73,7 +76,11 @@ export function ContactForm({
           setError(labels.errors[result.code] ?? labels.errors.unavailable);
           return;
         }
-        setDone({ duplicate: result.duplicate, emailStatus: "emailStatus" in result ? result.emailStatus : undefined });
+        setDone({
+          duplicate: result.duplicate,
+          recordCreated: "recordCreated" in result ? result.recordCreated : false,
+          emailStatus: "emailStatus" in result && result.emailStatus ? result.emailStatus : "none",
+        });
       }}
     >
       <div className="grid gap-1.5">

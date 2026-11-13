@@ -22,8 +22,8 @@ export default async function ContactPage() {
           submit: copy.contact.submit,
           done: copy.contact.done,
           sent: copy.contact.sent,
-          pending: copy.contact.pending,
-          failed: copy.contact.failed,
+          savedUnsent: copy.contact.savedUnsent,
+          savedPending: copy.contact.savedPending,
           duplicate: copy.contact.duplicate,
           errors: {
             invalid: copy.assessment.errorInvalid,

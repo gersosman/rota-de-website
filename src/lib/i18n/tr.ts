@@ -208,6 +208,8 @@ export const tr = {
     sent: "Yöneticiye e-posta bildirimi gönderildi.",
     pending: "E-posta bildirimi henüz tamamlanmadı.",
     failed: "E-posta bildirimi gönderilemedi. Kayıt duruyor.",
+    savedUnsent: "Mesajınız kaydedildi. E-posta bildirimi gönderilemedi. Kayıt duruyor.",
+    savedPending: "Mesajınız kaydedildi. E-posta bildirimi henüz tamamlanmadı.",
     duplicate: "Bu gönderim daha önce kaydedilmişti.",
   },
   legal: {

@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { publicGate } from "@/server/actions/guards";
 import { createAssessmentLead, createContactLead, createJourneyLead, findSubmission, requestDeletion } from "@/server/leads";
 import { allowRate, hashValue } from "@/server/rate-limit";
-import { contactTrace, type ContactLog } from "@/lib/contact-mail";
+import { contactFollowUp, contactTrace, type ContactLog } from "@/lib/contact-mail";
 import { contactInbox, contactInboxDiagnostics } from "@/server/mail";
 import { enqueueOutbound, settleOutbound, settleStaffOutbound } from "@/server/outbound";
 import type { NoticeState } from "@/lib/outbound-policy";
@@ -142,7 +142,7 @@ export async function submitContact(input: unknown) {
   }
   try {
     const result = await createContactLead(parsed.data);
-    if (result.duplicate || !result.publicCode) {
+    if (contactFollowUp(result) === "duplicate") {
       logContact(contactTrace({
         branch: "duplicate",
         reason: "idempotency",

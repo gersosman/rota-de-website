@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import { createContactAttempt } from "@/lib/contact-attempt";
 import { contactResultView, type ContactEmailStatus } from "@/lib/contact-mail";
 import { submitContact } from "@/server/actions/intake";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,8 @@ export function ContactForm({
     errors: Record<string, string>;
   };
 }) {
-  const key = `contact-${useId().replace(/[^a-zA-Z0-9]/g, "")}-rota`;
+  const attempt = useRef(createContactAttempt());
+  const sending = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [website, setWebsite] = useState("");
@@ -59,28 +61,37 @@ export function ContactForm({
       className="grid gap-4 rounded-2xl border border-border bg-card p-5"
       onSubmit={async (event) => {
         event.preventDefault();
-        const form = new FormData(event.currentTarget);
+        if (sending.current) return;
+        const idempotencyKey = attempt.current.prepare();
+        sending.current = true;
         setPending(true);
         setError(null);
-        const result = await submitContact({
-          fullName: form.get("fullName"),
-          email: form.get("email"),
-          subject: form.get("subject"),
-          message: form.get("message"),
-          consent: form.get("consent") === "on" ? true : false,
-          idempotencyKey: key,
-          companyWebsite: website,
-        });
-        setPending(false);
-        if (!result.ok) {
-          setError(labels.errors[result.code] ?? labels.errors.unavailable);
-          return;
+        const form = new FormData(event.currentTarget);
+        try {
+          const result = await submitContact({
+            fullName: form.get("fullName"),
+            email: form.get("email"),
+            subject: form.get("subject"),
+            message: form.get("message"),
+            consent: form.get("consent") === "on" ? true : false,
+            idempotencyKey,
+            companyWebsite: website,
+          });
+          if (!result.ok) {
+            setError(labels.errors[result.code] ?? labels.errors.unavailable);
+            return;
+          }
+          setDone({
+            duplicate: result.duplicate,
+            recordCreated: "recordCreated" in result ? result.recordCreated : false,
+            emailStatus: "emailStatus" in result && result.emailStatus ? result.emailStatus : "none",
+          });
+        } catch {
+          setError(labels.errors.unavailable ?? "");
+        } finally {
+          sending.current = false;
+          setPending(false);
         }
-        setDone({
-          duplicate: result.duplicate,
-          recordCreated: "recordCreated" in result ? result.recordCreated : false,
-          emailStatus: "emailStatus" in result && result.emailStatus ? result.emailStatus : "none",
-        });
       }}
     >
       <div className="grid gap-1.5">
@@ -108,7 +119,7 @@ export function ContactForm({
       </label>
       <input className="absolute -left-[9999px]" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(event) => setWebsite(event.target.value)} />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" variant="accent" className="h-11" disabled={pending || !key}>{pending ? labels.submit : labels.submit}</Button>
+      <Button type="submit" variant="accent" className="h-11" disabled={pending}>{labels.submit}</Button>
     </form>
   );
 }

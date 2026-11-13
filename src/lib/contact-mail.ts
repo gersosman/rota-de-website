@@ -68,3 +68,8 @@ export function contactResultView(input: {
   if (input.emailStatus === "pending") return "pending";
   return "unsent";
 }
+
+export function contactFollowUp(result: { duplicate: boolean; publicCode: string | null }): "duplicate" | "notify" {
+  if (result.duplicate || !result.publicCode) return "duplicate";
+  return "notify";
+}
